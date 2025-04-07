@@ -1,7 +1,14 @@
-import React, { useState } from 'react';
+import React from 'react';
+import PropTypes from 'prop-types';
+
+const sourceOptions = [
+  { label: "PubMed", value: "PM" },
+  { label: "PumbMed Central", value: "PMC" },
+  { label: "ClinicalTrials.gov", value: "CTG" }
+];
 
 const FilterPanel = ({ filters, setFilters }) => {
-  const [showMore, setShowMore] = useState(false);
+  const [showMore, setShowMore] = React.useState(false);
 
   const handleChange = (e) => {
     setFilters({
@@ -10,10 +17,21 @@ const FilterPanel = ({ filters, setFilters }) => {
     });
   };
 
+  const handleSourceChange = (value) => {
+    let current = filters.sources || sourceOptions.map(opt => opt.value); // 기본: 모두 선택
+    if (current.includes(value)) {
+      current = current.filter(v => v !== value);
+    } else {
+      current.push(value);
+    }
+    setFilters({ ...filters, sources: current });
+  };
+
   return (
     <div className="bg-white shadow-md rounded-md p-4 mb-4">
       <h2 className="text-lg font-semibold mb-2">Search Filters</h2>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* 기존 필드들 */}
         <div>
           <label className="block text-sm font-medium">Condition</label>
           <input
@@ -22,7 +40,7 @@ const FilterPanel = ({ filters, setFilters }) => {
             value={filters.cond}
             onChange={handleChange}
             placeholder="e.g., Diabetes"
-            className="mt-1 block w-full border-gray-300 rounded-md"
+            className="mt-1 block w-full border border-gray-300 rounded-md"
           />
         </div>
         <div>
@@ -33,7 +51,7 @@ const FilterPanel = ({ filters, setFilters }) => {
             value={filters.intr}
             onChange={handleChange}
             placeholder="e.g., Insulin"
-            className="mt-1 block w-full border-gray-300 rounded-md"
+            className="mt-1 block w-full border border-gray-300 rounded-md"
           />
         </div>
         <div>
@@ -44,8 +62,26 @@ const FilterPanel = ({ filters, setFilters }) => {
             value={filters.other_term}
             onChange={handleChange}
             placeholder="Additional keywords"
-            className="mt-1 block w-full border-gray-300 rounded-md"
+            className="mt-1 block w-full border border-gray-300 rounded-md"
           />
+        </div>
+      </div>
+      {/* 검색 소스 다중 선택 */}
+      <div className="mt-4">
+        <label className="block text-sm font-medium">Search Sources</label>
+        <div className="flex flex-wrap gap-2 mt-1">
+          {sourceOptions.map(option => (
+            <label key={option.value} className="flex items-center space-x-1">
+              <input
+                type="checkbox"
+                name="sources"
+                value={option.value}
+                checked={filters.sources ? filters.sources.includes(option.value) : true}
+                onChange={() => handleSourceChange(option.value)}
+              />
+              <span className="text-sm">{option.label}</span>
+            </label>
+          ))}
         </div>
       </div>
       <button
@@ -56,7 +92,7 @@ const FilterPanel = ({ filters, setFilters }) => {
       </button>
       {showMore && (
         <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* PubMed 고급 필터 */}
+          {/* 나머지 고급 필드들 */}
           <div>
             <label className="block text-sm font-medium">Journal</label>
             <input
@@ -65,7 +101,7 @@ const FilterPanel = ({ filters, setFilters }) => {
               value={filters.journal || ""}
               onChange={handleChange}
               placeholder="e.g., BMJ Open"
-              className="mt-1 block w-full border-gray-300 rounded-md"
+              className="mt-1 block w-full border border-gray-300 rounded-md"
             />
           </div>
           <div>
@@ -96,7 +132,7 @@ const FilterPanel = ({ filters, setFilters }) => {
             </select>
           </div>
           {/* ClinicalTrials.gov 고급 필터 */}
-          <div>
+            <div>
             <label className="block text-sm font-medium">Study Type</label>
             <select
               name="studyType"
@@ -141,11 +177,28 @@ const FilterPanel = ({ filters, setFilters }) => {
               className="mt-1 block w-full border-gray-300 rounded-md"
             />
           </div>
-          {/* 날짜 필터는 추후 datepicker 라이브러리 적용 고려 */}
+          {/* ... 추가 필드 */}
         </div>
       )}
     </div>
   );
+};
+
+FilterPanel.propTypes = {
+  filters: PropTypes.shape({
+    cond: PropTypes.string,
+    intr: PropTypes.string,
+    other_term: PropTypes.string,
+    journal: PropTypes.string,
+    sex: PropTypes.string,
+    age: PropTypes.string,
+    studyType: PropTypes.string,
+    sponsor: PropTypes.string,
+    location: PropTypes.string,
+    status: PropTypes.string,
+    sources: PropTypes.arrayOf(PropTypes.string)
+  }).isRequired,
+  setFilters: PropTypes.func.isRequired
 };
 
 export default FilterPanel;

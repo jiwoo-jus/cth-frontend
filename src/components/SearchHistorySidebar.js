@@ -1,5 +1,7 @@
 // filepath: src/components/SearchHistorySidebar.js
 import React from 'react';
+import PropTypes from 'prop-types';
+
 
 // 사용자 친화적 레이블 매핑 (필요에 따라 확장 가능)
 const labelMap = {
@@ -55,5 +57,33 @@ const SearchHistorySidebar = ({ history, onSelect, isOpen, toggleSidebar, sideba
     </div>
   );
 };
+
+
+SearchHistorySidebar.propTypes = {
+  history: PropTypes.arrayOf(
+    PropTypes.shape({
+      cond: PropTypes.string,
+      intr: PropTypes.string,
+      other_term: PropTypes.string,
+      journal: PropTypes.string,
+      sex: PropTypes.string,
+      age: PropTypes.string,
+      studyType: PropTypes.string,
+      sponsor: PropTypes.string,
+      location: PropTypes.string,
+      status: PropTypes.string,
+      // 페이지네이션 등 추가 값이 있다면 함께 정의할 수 있습니다.
+      page: PropTypes.number,
+      pageSize: PropTypes.number,
+      isRefined: PropTypes.bool,
+      refinedQuery: PropTypes.any
+    })
+  ).isRequired,
+  onSelect: PropTypes.func.isRequired,
+  isOpen: PropTypes.bool.isRequired,
+  toggleSidebar: PropTypes.func.isRequired,
+  sidebarWidth: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired
+};
+
 
 export default SearchHistorySidebar;

@@ -1,5 +1,6 @@
 // src/components/SearchResults.js
 import React from 'react';
+import PropTypes from 'prop-types';
 
 const SearchResults = ({ results, onResultSelect }) => {
   if (!results) {
@@ -69,6 +70,38 @@ const SearchResults = ({ results, onResultSelect }) => {
       </div>
     </div>
   );
+};
+
+SearchResults.propTypes = {
+  results: PropTypes.shape({
+    pm: PropTypes.shape({
+      total: PropTypes.number,
+      results: PropTypes.arrayOf(
+        PropTypes.shape({
+          id: PropTypes.string,
+          title: PropTypes.string,
+          journal: PropTypes.string,
+          pubDate: PropTypes.string,
+          authors: PropTypes.arrayOf(PropTypes.string),
+          pmid: PropTypes.string,
+          pmcid: PropTypes.string
+        })
+      )
+    }),
+    ctg: PropTypes.shape({
+      total: PropTypes.number,
+      results: PropTypes.arrayOf(
+        PropTypes.shape({
+          id: PropTypes.string, // nctid 값
+          title: PropTypes.string,
+          status: PropTypes.string,
+          conditions: PropTypes.arrayOf(PropTypes.string)
+          // 필요시 추가 필드 정의 가능
+        })
+      )
+    })
+  }).isRequired,
+  onResultSelect: PropTypes.func.isRequired
 };
 
 export default SearchResults;

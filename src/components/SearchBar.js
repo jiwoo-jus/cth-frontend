@@ -1,4 +1,6 @@
 import React from 'react';
+import PropTypes from 'prop-types';
+
 
 const SearchBar = ({ query, setQuery, onSubmit }) => {
   const handleKeyDown = (e) => {
@@ -25,6 +27,12 @@ const SearchBar = ({ query, setQuery, onSubmit }) => {
       </button>
     </div>
   );
+};
+
+SearchBar.propTypes = {
+  query: PropTypes.string.isRequired,
+  setQuery: PropTypes.func.isRequired,
+  onSubmit: PropTypes.func.isRequired,
 };
 
 export default SearchBar;

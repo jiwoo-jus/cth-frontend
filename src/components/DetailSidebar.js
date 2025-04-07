@@ -1,5 +1,7 @@
 // filepath: src/components/DetailSidebar.js
 import React from 'react';
+import PropTypes from 'prop-types';
+
 
 const DetailSidebar = ({ selectedResult, isOpen, toggleSidebar, sidebarWidth }) => {
   // CTG의 경우, reference 객체를 그룹별로 분류 (참조 객체는 { refsource, reftype, pmid, note, type } 형태라고 가정)
@@ -102,7 +104,7 @@ const DetailSidebar = ({ selectedResult, isOpen, toggleSidebar, sidebarWidth }) 
       style={{ width: isOpen ? sidebarWidth : "2rem", transition: "width 0.3s" }}
     >
       <button onClick={toggleSidebar} className="text-sm text-blue-500 focus:outline-none">
-        {isOpen ? "<<" : ">>"}
+        {isOpen ? ">>" : "<<"}
       </button>
       {isOpen && (
         <div className="mt-2 text-sm break-words">
@@ -111,6 +113,13 @@ const DetailSidebar = ({ selectedResult, isOpen, toggleSidebar, sidebarWidth }) 
       )}
     </div>
   );
+};
+
+DetailSidebar.propTypes = {
+  selectedResult: PropTypes.object,
+  isOpen: PropTypes.bool.isRequired,
+  toggleSidebar: PropTypes.func.isRequired,
+  sidebarWidth: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
 };
 
 export default DetailSidebar;
