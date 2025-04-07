@@ -1,6 +1,7 @@
+// src/components/SearchResults.js
 import React from 'react';
 
-const SearchResults = ({ results }) => {
+const SearchResults = ({ results, onResultSelect }) => {
   if (!results) {
     return null;
   }
@@ -15,12 +16,21 @@ const SearchResults = ({ results }) => {
         {pm.results.length > 0 ? (
           <ul className="space-y-4">
             {pm.results.map((item) => (
-              <li key={item.id} className="p-4 bg-white shadow rounded-md">
+              <li 
+                key={item.id} 
+                className="p-4 bg-white shadow rounded-md cursor-pointer" 
+                onClick={() => onResultSelect(item)}
+              >
                 <h4 className="font-bold">{item.title}</h4>
                 <p className="text-sm text-gray-600">
                   {item.journal} &middot; {item.pubDate}
                 </p>
-                <p className="text-sm">Authors: {item.authors.join(", ")}</p>
+                <p className="text-sm">
+                  Authors: {item.authors.join(", ")}
+                </p>
+                <p className="text-sm text-gray-500">
+                  PMID: {item.pmid} {item.pmcid && `| PMCID: ${item.pmcid}`}
+                </p>
               </li>
             ))}
           </ul>
@@ -35,10 +45,17 @@ const SearchResults = ({ results }) => {
         {ctg.results.length > 0 ? (
           <ul className="space-y-4">
             {ctg.results.map((study) => (
-              <li key={study.id} className="p-4 bg-white shadow rounded-md">
+              <li 
+                key={study.id} 
+                className="p-4 bg-white shadow rounded-md cursor-pointer" 
+                onClick={() => onResultSelect(study)}
+              >
                 <h4 className="font-bold">{study.title}</h4>
                 <p className="text-sm text-gray-600">
                   Status: {study.status}
+                </p>
+                <p className="text-sm text-gray-500">
+                  NCTID: {study.id}
                 </p>
                 {study.conditions && study.conditions.length > 0 && (
                   <p className="text-sm">Conditions: {study.conditions.join(", ")}</p>
