@@ -7,11 +7,13 @@ import SearchResults from '../components/SearchResults';
 import SearchHistorySidebar from '../components/SearchHistorySidebar';
 import DetailSidebar from '../components/DetailSidebar';
 import { searchClinicalTrials } from '../api/searchApi';
-//JSON 라이브러리 추가
 
 const SearchPage = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+
+  // 메인 검색박스 입력값
+  const [query, setQuery] = useState('');
 
   // 기본 필터 상태 (검색 소스 다중 선택 포함)
   const [filters, setFilters] = useState({
@@ -50,7 +52,7 @@ const SearchPage = () => {
   // 초기 마운트 여부 확인
   const initialMountRef = useRef(true);
 
-  // 새로고침 시 URL 쿼리 제거
+  // 새로고침 시 URL 쿼리 제거 (기존 검색 조건 초기화)
   useEffect(() => {
     if (window.location.search) {
       window.history.replaceState({}, document.title, window.location.pathname);
@@ -104,10 +106,8 @@ const SearchPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Extract complex expression to a separate variable
-  const sourcesString = JSON.stringify(filters.sources);
-  
   // 필터 변경 시 refined 상태 및 CTG 토큰 히스토리 초기화 (초기 마운트 제외)
+  const sourcesString = JSON.stringify(filters.sources);
   useEffect(() => {
     if (initialMountRef.current) {
       initialMountRef.current = false;
@@ -131,21 +131,21 @@ const SearchPage = () => {
     sourcesString
   ]);
 
-  // 검색 함수: manual 호출 시 (customParams가 없으면) 재검색을 위해 상태 초기화
+  // 검색 함수: 사용자 직접 검색 버튼 클릭 시, 재검색을 위해 상태 초기화하고, 메인 검색박스 값은 user_query 필드로 추가
   const handleSearch = async (customParams = null) => {
-    // 만약 검색 버튼을 직접 누른 경우, 재검색을 위해 페이지와 CTG 토큰 히스토리, refined 상태 초기화
     if (!customParams) {
+      const newFilters = { ...filters }; // cond 필드는 그대로 유지
+      setFilters(newFilters);
       setPage(1);
       setCtgTokenHistory({});
       setIsRefined(false);
       setRefinedQuery(null);
+      // user_query 필드를 추가하여 메인 검색박스 입력값을 백엔드로 보냄
+      customParams = { ...newFilters, user_query: query, page: 1, pageSize, ctgPageToken: null };
+      setSearchHistory([customParams, ...searchHistory]);
     }
     const effectiveFilters = customParams || { ...filters, page, pageSize, isRefined, refinedQuery, ctgPageToken: ctgTokenHistory[page] || null };
 
-    // 업데이트: 검색 버튼을 누를 때마다 새 검색 기록 추가
-    if (!customParams) {
-      setSearchHistory([effectiveFilters, ...searchHistory]);
-    }
     const newParams = {
       ...effectiveFilters,
       page: effectiveFilters.page,
@@ -162,7 +162,6 @@ const SearchPage = () => {
 
     setLoading(true);
     try {
-      // CTG 토큰: 현재 페이지에 해당하는 토큰 사용
       const requestFilters = { ...effectiveFilters, ctgPageToken: ctgTokenHistory[effectiveFilters.page] || null };
       const data = await searchClinicalTrials(requestFilters);
       setResults(data.results);
@@ -255,6 +254,7 @@ const SearchPage = () => {
       status: '',
       sources: ["PM", "PMC", "CTG"]
     });
+    setQuery('');
     setPage(1);
     setPageSize(10);
     setIsRefined(false);
@@ -290,14 +290,13 @@ const SearchPage = () => {
         <div className="mb-4 cursor-pointer" onClick={handleLogoClick}>
           <h1 className="text-4xl font-bold text-center">Clinical Trials Hub</h1>
         </div>
-        <SearchBar onSubmit={() => handleSearch()} />
+        <SearchBar query={query} setQuery={setQuery} onSubmit={() => handleSearch()} />
         <FilterPanel filters={filters} setFilters={setFilters} />
         {loading ? (
           <div className="text-center mt-6">Loading...</div>
         ) : (
           <SearchResults results={results} onResultSelect={handleResultSelect} />
         )}
-
         {/* 페이지네이션 컨트롤 (PubMed 기준) */}
         {results && results.pm && (
           <div className="flex justify-center mt-4 space-x-4">
