@@ -1,34 +1,46 @@
+import PropTypes from 'prop-types';
 // src/components/SearchResults.js
 import React from 'react';
-import PropTypes from 'prop-types';
+import { useNavigate } from 'react-router-dom';
 
 const SearchResults = ({ results, onResultSelect }) => {
+  const navigate = useNavigate();
+
+  // results가 null이면 로딩 또는 빈 화면 표시
   if (!results) {
-    return null;
+    return <div>No results to display.</div>;
   }
 
-  const { pm, ctg } = results;
+  // PubMed와 CTG 결과가 있는지 확인
+  const pmResults = results.pm || { total: 0, results: [] };
+  const ctgResults = results.ctg || { total: 0, results: [] };
+
+  const handleItemClick = (item) => {
+    onResultSelect(item);
+    // PM/PMC 인 경우 paperId, pmcid, 소스 정보 전달; CTG 인 경우 nctId와 소스 전달
+    if (item.source === "CTG") {
+      navigate(`/detail?nctId=${item.id}&source=CTG`);
+    } else {
+      navigate(`/detail?paperId=${item.id}&pmcid=${item.pmid}&source=${item.source}`);
+    }
+  };
 
   return (
     <div className="mt-6">
-      {/* PubMed Results */}
+      {/* PubMed 결과 */}
       <div className="mb-8">
-        <h3 className="text-xl font-semibold mb-2">PubMed Results ({pm.total})</h3>
-        {pm.results.length > 0 ? (
+        <h3 className="text-xl font-semibold mb-2">PubMed Results ({pmResults.total})</h3>
+        {pmResults.results.length > 0 ? (
           <ul className="space-y-4">
-            {pm.results.map((item) => (
+            {pmResults.results.map((item) => (
               <li 
                 key={item.id} 
                 className="p-4 bg-white shadow rounded-md cursor-pointer" 
-                onClick={() => onResultSelect(item)}
+                onClick={() => handleItemClick(item)}
               >
                 <h4 className="font-bold">{item.title}</h4>
-                <p className="text-sm text-gray-600">
-                  {item.journal} &middot; {item.pubDate}
-                </p>
-                <p className="text-sm">
-                  Authors: {item.authors.join(", ")}
-                </p>
+                <p className="text-sm text-gray-600">{item.journal} &middot; {item.pubDate}</p>
+                <p className="text-sm">Authors: {item.authors.join(", ")}</p>
                 <p className="text-sm text-gray-500">
                   PMID: {item.pmid} {item.pmcid && `| PMCID: ${item.pmcid}`}
                 </p>
@@ -39,25 +51,20 @@ const SearchResults = ({ results, onResultSelect }) => {
           <p>No PubMed results found.</p>
         )}
       </div>
-
-      {/* ClinicalTrials.gov Results */}
+      {/* CTG 결과 */}
       <div>
-        <h3 className="text-xl font-semibold mb-2">ClinicalTrials.gov Results ({ctg.total})</h3>
-        {ctg.results.length > 0 ? (
+        <h3 className="text-xl font-semibold mb-2">ClinicalTrials.gov Results ({ctgResults.total})</h3>
+        {ctgResults.results.length > 0 ? (
           <ul className="space-y-4">
-            {ctg.results.map((study) => (
+            {ctgResults.results.map((study) => (
               <li 
                 key={study.id} 
                 className="p-4 bg-white shadow rounded-md cursor-pointer" 
-                onClick={() => onResultSelect(study)}
+                onClick={() => handleItemClick(study)}
               >
                 <h4 className="font-bold">{study.title}</h4>
-                <p className="text-sm text-gray-600">
-                  Status: {study.status}
-                </p>
-                <p className="text-sm text-gray-500">
-                  NCTID: {study.id}
-                </p>
+                <p className="text-sm text-gray-600">Status: {study.status}</p>
+                <p className="text-sm text-gray-500">NCT ID: {study.id}</p>
                 {study.conditions && study.conditions.length > 0 && (
                   <p className="text-sm">Conditions: {study.conditions.join(", ")}</p>
                 )}
@@ -92,15 +99,15 @@ SearchResults.propTypes = {
       total: PropTypes.number,
       results: PropTypes.arrayOf(
         PropTypes.shape({
-          id: PropTypes.string, // nctid 값
+          id: PropTypes.string,
           title: PropTypes.string,
           status: PropTypes.string,
           conditions: PropTypes.arrayOf(PropTypes.string)
-          // 필요시 추가 필드 정의 가능
         })
-      )
+      ),
+      nextPageToken: PropTypes.string
     })
-  }).isRequired,
+  }),
   onResultSelect: PropTypes.func.isRequired
 };
 
