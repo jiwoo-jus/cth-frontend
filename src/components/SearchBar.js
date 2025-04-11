@@ -1,6 +1,6 @@
+// src/components/SearchBar.js
 import React from 'react';
 import PropTypes from 'prop-types';
-
 
 const SearchBar = ({ query, setQuery, onSubmit }) => {
   const handleKeyDown = (e) => {

@@ -6,12 +6,13 @@ import ChatBot from '../components/ChatBot';
 import StructuredInfoTabs from '../components/StructuredInfoTabs';
 import FullText from '../components/FullText';
 
+const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5050';
+
 const DetailPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { paperId, pmcid, nctId, source } = queryString.parse(location.search);
 
-  // 각 영역의 상태 선언 (챗봇, structured info, fulltext 등)
   const [structuredInfo, setStructuredInfo] = useState(null);
   const [fullText, setFullText] = useState('');
   const [fullTextExpanded, setFullTextExpanded] = useState(false);
@@ -20,30 +21,28 @@ const DetailPage = () => {
   useEffect(() => {
     // PM/PMC인 경우: pmcid를 사용하여 structured info와 full text 호출
     if ((source === 'PM' || source === 'PMC') && pmcid) {
-      // API 호출 예시 (구현에 맞게 변경)
-      fetch(`/paper/structured_info?pmcid=${pmcid}`)
-        .then(res => res.json())
-        .then(data => setStructuredInfo(data.structured_info))
-        .catch(err => console.error(err));
-      fetch(`/paper/pmc_full_text_html?pmcid=${pmcid}`)
-        .then(res => res.json())
-        .then(data => setFullText(data.pmc_full_text_html || ''))
-        .catch(err => console.error(err));
+      fetch(`${BASE_URL}/api/paper/structured_info?pmcid=${pmcid}`)
+        .then((res) => res.json())
+        .then((data) => setStructuredInfo(data.structured_info))
+        .catch((err) => console.error(err));
+      fetch(`${BASE_URL}/api/paper/pmc_full_text_html?pmcid=${pmcid}`)
+        .then((res) => res.json())
+        .then((data) => setFullText(data.pmc_full_text_html || ''))
+        .catch((err) => console.error(err));
     }
-    // CTG인 경우: nctId 기반 호출 (구현에 따라 다름)
+    // CTG인 경우: nctId를 사용하여 상세 정보 호출
     if (source === 'CTG' && nctId) {
-      fetch(`/paper/ctg_detail?nctId=${nctId}`)
-        .then(res => res.json())
-        .then(data => {
+      fetch(`${BASE_URL}/api/paper/ctg_detail?nctId=${nctId}`)
+        .then((res) => res.json())
+        .then((data) => {
           setStructuredInfo(data.structured_info);
           setFullText(data.full_text || '');
         })
-        .catch(err => console.error(err));
+        .catch((err) => console.error(err));
     }
   }, [paperId, pmcid, nctId, source]);
 
   const handleChatResponse = (response) => {
-    // ChatBot에서 evidence 반환 시 상위로 받아 FullText 하이라이트에 적용
     setHighlightedEvidence(response.evidence || []);
   };
 
@@ -80,14 +79,44 @@ const DetailPage = () => {
       </div>
 
       <div style={{ border: '1px solid #ccc', padding: '1rem', marginBottom: '1rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2>Full Text</h2>
-          <button onClick={() => setFullTextExpanded(prev => !prev)}>
-            {fullTextExpanded ? 'Collapse' : 'Expand'}
-          </button>
-        </div>
-        {fullTextExpanded && (
-          <FullText fullText={fullText} highlightedEvidence={highlightedEvidence} />
+        {source === "CTG" ? (
+          <>
+            <h2>References</h2>
+            <div style={{ border: '1px solid #ccc', padding: '1rem', overflow: 'auto' }}>
+              {structuredInfo && structuredInfo.references && structuredInfo.references.length > 0 ? (
+                structuredInfo.references.map((ref, index) => (
+                  <div key={index} style={{ marginBottom: '8px' }}>
+                    {ref.pmid ? (
+                      <a
+                        href={`https://pubmed.ncbi.nlm.nih.gov/${ref.pmid}/`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ color: '#0645AD', textDecoration: 'underline' }}
+                      >
+                        {ref.citation}
+                      </a>
+                    ) : (
+                      <span>{ref.citation}</span>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <p>No references available.</p>
+              )}
+            </div>
+          </>
+        ) : (
+          <>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2>Full Text</h2>
+              <button onClick={() => setFullTextExpanded(prev => !prev)}>
+                {fullTextExpanded ? 'Collapse' : 'Expand'}
+              </button>
+            </div>
+            {fullTextExpanded && (
+              <FullText fullText={fullText} highlightedEvidence={highlightedEvidence} />
+            )}
+          </>
         )}
       </div>
     </div>

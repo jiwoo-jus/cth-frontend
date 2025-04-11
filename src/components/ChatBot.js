@@ -1,9 +1,7 @@
+// src/components/ChatBot.js
 import PropTypes from 'prop-types';
 import React, { useState } from 'react';
-
-import api from '../api';
-
-// ../api/index.js 를 불러옴
+import api from '../api'; // api/index.js
 // import './ChatBot.css';
 
 function copyToClipboard(text) {
@@ -75,7 +73,7 @@ const ChatMessage = ({ message, onToggle }) => {
   );
 };
 
-function ChatBot({ paperId, data, onResponse }) {
+const ChatBot = ({ paperId, data, onResponse }) => {
   const [question, setQuestion] = useState('');
   const [conversation, setConversation] = useState([]);
 
@@ -94,7 +92,6 @@ function ChatBot({ paperId, data, onResponse }) {
       };
       setConversation([...conversation, newMessage]);
       setQuestion('');
-      // 상위로 evidence 전달 (FullText 하이라이트에 사용)
       if (onResponse) {
         onResponse(response.data);
       }
@@ -128,7 +125,7 @@ function ChatBot({ paperId, data, onResponse }) {
       <button onClick={handleAsk}>Ask</button>
     </div>
   );
-}
+};
 
 ChatBot.propTypes = {
   paperId: PropTypes.string,
@@ -145,6 +142,5 @@ ChatMessage.propTypes = {
   }).isRequired,
   onToggle: PropTypes.func.isRequired,
 };
-
 
 export default ChatBot;

@@ -1,3 +1,4 @@
+// src/components/FilterPanel.js
 import React from 'react';
 import PropTypes from 'prop-types';
 
@@ -31,7 +32,6 @@ const FilterPanel = ({ filters, setFilters }) => {
     <div className="bg-white shadow-md rounded-md p-4 mb-4">
       <h2 className="text-lg font-semibold mb-2">Search Filters</h2>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* 기존 필드들 */}
         <div>
           <label className="block text-sm font-medium">Condition</label>
           <input
@@ -66,7 +66,6 @@ const FilterPanel = ({ filters, setFilters }) => {
           />
         </div>
       </div>
-      {/* 검색 소스 다중 선택 */}
       <div className="mt-4">
         <label className="block text-sm font-medium">Search Sources</label>
         <div className="flex flex-wrap gap-2 mt-1">
@@ -92,7 +91,6 @@ const FilterPanel = ({ filters, setFilters }) => {
       </button>
       {showMore && (
         <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* 나머지 고급 필드들 */}
           <div>
             <label className="block text-sm font-medium">Journal</label>
             <input
@@ -110,7 +108,7 @@ const FilterPanel = ({ filters, setFilters }) => {
               name="sex"
               value={filters.sex || ""}
               onChange={handleChange}
-              className="mt-1 block w-full border-gray-300 rounded-md"
+              className="mt-1 block w-full border border-gray-300 rounded-md"
             >
               <option value="">Any</option>
               <option value="Male">Male</option>
@@ -123,7 +121,7 @@ const FilterPanel = ({ filters, setFilters }) => {
               name="age"
               value={filters.age || ""}
               onChange={handleChange}
-              className="mt-1 block w-full border-gray-300 rounded-md"
+              className="mt-1 block w-full border border-gray-300 rounded-md"
             >
               <option value="">Any</option>
               <option value="child">Child</option>
@@ -131,14 +129,13 @@ const FilterPanel = ({ filters, setFilters }) => {
               <option value="older">Older</option>
             </select>
           </div>
-          {/* ClinicalTrials.gov 고급 필터 */}
-            <div>
+          <div>
             <label className="block text-sm font-medium">Study Type</label>
             <select
               name="studyType"
               value={filters.studyType || ""}
               onChange={handleChange}
-              className="mt-1 block w-full border-gray-300 rounded-md"
+              className="mt-1 block w-full border border-gray-300 rounded-md"
             >
               <option value="">Any</option>
               <option value="int obs">Interventional/Observational</option>
@@ -152,7 +149,7 @@ const FilterPanel = ({ filters, setFilters }) => {
               value={filters.sponsor || ""}
               onChange={handleChange}
               placeholder="e.g., National Institute of Health"
-              className="mt-1 block w-full border-gray-300 rounded-md"
+              className="mt-1 block w-full border border-gray-300 rounded-md"
             />
           </div>
           <div>
@@ -163,7 +160,7 @@ const FilterPanel = ({ filters, setFilters }) => {
               value={filters.location || ""}
               onChange={handleChange}
               placeholder="e.g., Columbus, Ohio"
-              className="mt-1 block w-full border-gray-300 rounded-md"
+              className="mt-1 block w-full border border-gray-300 rounded-md"
             />
           </div>
           <div>
@@ -174,10 +171,9 @@ const FilterPanel = ({ filters, setFilters }) => {
               value={filters.status || ""}
               onChange={handleChange}
               placeholder="e.g., COMPLETED, TERMINATED"
-              className="mt-1 block w-full border-gray-300 rounded-md"
+              className="mt-1 block w-full border border-gray-300 rounded-md"
             />
           </div>
-          {/* ... 추가 필드 */}
         </div>
       )}
     </div>

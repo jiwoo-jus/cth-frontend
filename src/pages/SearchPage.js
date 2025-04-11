@@ -47,12 +47,12 @@ const SearchPage = () => {
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(true);
   const [rightSidebarOpen, setRightSidebarOpen] = useState(true);
   const [leftWidth, setLeftWidth] = useState(250);
-  const [rightWidth, setRightWidth] = useState(500); // 오른쪽 사이드바는 2배 넓게
+  const [rightWidth, setRightWidth] = useState(500);
 
   // 초기 마운트 여부 확인
   const initialMountRef = useRef(true);
 
-  // 새로고침 시 URL 쿼리 제거 (기존 검색 조건 초기화)
+  // 새로고침 시 URL 쿼리 제거
   useEffect(() => {
     if (window.location.search) {
       window.history.replaceState({}, document.title, window.location.pathname);
@@ -131,16 +131,16 @@ const SearchPage = () => {
     sourcesString
   ]);
 
-  // 검색 함수: 사용자 직접 검색 버튼 클릭 시, 재검색을 위해 상태 초기화하고, 메인 검색박스 값은 user_query 필드로 추가
+  // 검색 함수: 검색 버튼 클릭 시, user_query 필드로 메인 검색박스 입력값을 추가
   const handleSearch = async (customParams = null) => {
     if (!customParams) {
-      const newFilters = { ...filters }; // cond 필드는 그대로 유지
+      const newFilters = { ...filters };
       setFilters(newFilters);
       setPage(1);
       setCtgTokenHistory({});
       setIsRefined(false);
       setRefinedQuery(null);
-      // user_query 필드를 추가하여 메인 검색박스 입력값을 백엔드로 보냄
+      // 여기서 user_query 필드를 추가합니다.
       customParams = { ...newFilters, user_query: query, page: 1, pageSize, ctgPageToken: null };
       setSearchHistory([customParams, ...searchHistory]);
     }
@@ -165,7 +165,6 @@ const SearchPage = () => {
       const requestFilters = { ...effectiveFilters, ctgPageToken: ctgTokenHistory[effectiveFilters.page] || null };
       const data = await searchClinicalTrials(requestFilters);
       setResults(data.results);
-      // CTG 결과: 다음 페이지 토큰 저장 (현재 페이지+1 키로)
       if (data.results.ctg && data.results.ctg.nextPageToken) {
         setCtgTokenHistory(prev => ({ ...prev, [effectiveFilters.page + 1]: data.results.ctg.nextPageToken }));
       }
@@ -192,13 +191,11 @@ const SearchPage = () => {
     setSelectedResult(result);
   };
 
-  // 페이지 변경 핸들러: CTG 토큰은 token history에서 현재 페이지에 해당하는 값을 사용
   const goToPage = (newPage) => {
     setPage(newPage);
     handleSearch({ ...filters, page: newPage, pageSize, isRefined, refinedQuery, ctgPageToken: ctgTokenHistory[newPage] || null });
   };
 
-  // 좌측 사이드바 리사이징 핸들러
   const onLeftResizerMouseDown = (e) => {
     e.preventDefault();
     const startX = e.clientX;
@@ -217,7 +214,6 @@ const SearchPage = () => {
     window.addEventListener("mouseup", onMouseUp);
   };
 
-  // 우측 사이드바 리사이징 핸들러
   const onRightResizerMouseDown = (e) => {
     e.preventDefault();
     const startX = e.clientX;
@@ -236,10 +232,8 @@ const SearchPage = () => {
     window.addEventListener("mouseup", onMouseUp);
   };
 
-  // PubMed 전체 페이지 수 계산 (CTG는 토큰 기반으로 별도 처리)
   const totalPages = results && results.pm ? Math.ceil(results.pm.total / pageSize) : 1;
 
-  // 로고 클릭 시 상태 초기화 후 기본 URL로 새로고침
   const handleLogoClick = () => {
     setFilters({
       cond: '',
@@ -268,7 +262,6 @@ const SearchPage = () => {
 
   return (
     <div className="flex min-h-screen">
-      {/* 좌측 사이드바 */}
       <div className="flex flex-col">
         <SearchHistorySidebar 
           history={searchHistory}
@@ -284,8 +277,6 @@ const SearchPage = () => {
           />
         )}
       </div>
-
-      {/* 중앙 메인 콘텐츠 */}
       <div className="flex-grow p-4">
         <div className="mb-4 cursor-pointer" onClick={handleLogoClick}>
           <h1 className="text-4xl font-bold text-center">Clinical Trials Hub</h1>
@@ -297,7 +288,6 @@ const SearchPage = () => {
         ) : (
           <SearchResults results={results} onResultSelect={handleResultSelect} />
         )}
-        {/* 페이지네이션 컨트롤 (PubMed 기준) */}
         {results && results.pm && (
           <div className="flex justify-center mt-4 space-x-4">
             <button
@@ -318,16 +308,12 @@ const SearchPage = () => {
           </div>
         )}
       </div>
-
-      {/* 우측 리사이저 */}
       {rightSidebarOpen && (
         <div
           onMouseDown={onRightResizerMouseDown}
           className="w-1 cursor-ew-resize bg-gray-300"
         />
       )}
-
-      {/* 우측 사이드바 */}
       <DetailSidebar 
         selectedResult={selectedResult}
         isOpen={rightSidebarOpen}
