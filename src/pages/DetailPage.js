@@ -1,6 +1,6 @@
-import queryString from 'query-string';
 // src/pages/DetailPage.js
-import React, { useEffect, useState } from 'react';
+import queryString from 'query-string';
+import React, { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import ChatBot from '../components/ChatBot';
@@ -17,45 +17,48 @@ const DetailPage = () => {
   const [structuredInfo, setStructuredInfo] = useState(null);
   const [fullText, setFullText] = useState('');
   const [fullTextExpanded, setFullTextExpanded] = useState(false);
-  const [highlightedEvidence, setHighlightedEvidence] = useState([]);
+
+  // ChatBot에서 evidence를 하이라이트하지 않고, 바로 iframe 내부에서 스크롤
+  // => 이 경우, 별도 evidenceList state는 필요치 않음.
+  // const [evidenceList, setEvidenceList] = useState([]);
+
+  // FullText 컴포넌트를 참조하기 위한 ref
+  const fullTextRef = useRef(null);
 
   useEffect(() => {
-    // PM/PMC인 경우: pmcid를 사용하여 structured info와 full text 호출
+    // PM/PMC 케이스
     if ((source === 'PM' || source === 'PMC') && pmcid) {
       fetch(`${BASE_URL}/api/paper/structured_info?pmcid=${pmcid}`)
-        .then((res) => res.json())
+        .then(res => res.json())
         .then((data) => setStructuredInfo(data.structured_info))
         .catch((err) => console.error(err));
 
       fetch(`${BASE_URL}/api/paper/pmc_full_text_html?pmcid=${pmcid}`)
-      .then(res => res.text())
-      .then(htmlString => {
-        // DOMParser로 문자열을 HTML 문서 객체로 파싱
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(htmlString, 'text/html');
-        
-        // 원하는 영역 추출: #main-content > article
-        const article = doc.querySelector("#main-content > article");
-        if (article) {
-          // 불필요한 버튼 제거: 예를 들어 ul 요소를 모두 찾아서 제거
-          const btnLists = article.querySelectorAll("ul.d-buttons.inline-list");
-          btnLists.forEach(el => el.remove());
-          const sections = article.querySelectorAll("section");
-          sections.forEach(section => {
-            if (section.hasAttribute("aria-label") && section.getAttribute("aria-label") === "Article citation and metadata") {
-              section.remove();
-            }
-          })
-          // 정제된 HTML을 문자열로 얻기
-          const cleanedHtml = article.outerHTML;
-          setFullText(cleanedHtml);
-        } else {
-          setFullText(htmlString);
-        }
-      })
-      .catch(err => console.error(err));
+        .then(res => res.text())
+        .then(htmlString => {
+          // 원본 코드에서 불필요한 영역 제거
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(htmlString, 'text/html');
+          const article = doc.querySelector("#main-content > article");
+          if (article) {
+            const btnLists = article.querySelectorAll("ul.d-buttons.inline-list");
+            btnLists.forEach(el => el.remove());
+            const sections = article.querySelectorAll("section");
+            sections.forEach(section => {
+              if (section.hasAttribute("aria-label") 
+                && section.getAttribute("aria-label") === "Article citation and metadata") {
+                section.remove();
+              }
+            });
+            const cleanedHtml = article.outerHTML;
+            setFullText(cleanedHtml);
+          } else {
+            setFullText(htmlString);
+          }
+        })
+        .catch((err) => console.error(err));
     }
-    // CTG인 경우: nctId를 사용하여 상세 정보 호출
+    // CTG 케이스
     if (source === 'CTG' && nctId) {
       fetch(`${BASE_URL}/api/paper/ctg_detail?nctId=${nctId}`)
         .then((res) => res.json())
@@ -67,8 +70,19 @@ const DetailPage = () => {
     }
   }, [paperId, pmcid, nctId, source]);
 
+  // evidence "바로가기" 버튼 -> iframe 내부 스크롤 & 하이라이트
+  const scrollToEvidence = (evidenceText) => {
+    if (fullTextRef.current?.highlightEvidence) {
+      fullTextRef.current.highlightEvidence(evidenceText);
+    }
+  };
+
+  // ChatBot 응답 핸들러
+  // (굳이 evidenceList를 따로 보관하지 않고, scrollToEvidence만 사용)
   const handleChatResponse = (response) => {
-    setHighlightedEvidence(response.evidence || []);
+    console.log('Chat response evidence:', response.evidence);
+    // 만약 백엔드에서 "highlighted_article"처럼 iframe 쓰지 않고 div로 렌더링할 때만 쓰도록 한 코드를
+    // 제거하거나 무시해도 됨. 현재는 iframe이라 highlight 코드는 scrollToEvidence로 처리.
   };
 
   const handleBack = () => {
@@ -83,14 +97,16 @@ const DetailPage = () => {
         </h1>
         <button onClick={handleBack}>Back</button>
       </header>
-      
+
       <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
         <div style={{ flex: 3, border: '1px solid #ccc', padding: '1rem' }}>
           <h2>ChatBot</h2>
-          <ChatBot 
-            paperId={paperId} 
-            data={fullText} 
-            onResponse={handleChatResponse} 
+          {/* evidence 바로가기 -> scrollToEvidence로 전달 */}
+          <ChatBot
+            paperId={paperId}
+            data={fullText}
+            onResponse={handleChatResponse}
+            onEvidenceClick={scrollToEvidence}
           />
         </div>
         <div style={{ flex: 7, border: '1px solid #ccc', padding: '1rem' }}>
@@ -104,7 +120,7 @@ const DetailPage = () => {
       </div>
 
       <div style={{ border: '1px solid #ccc', padding: '1rem', marginBottom: '1rem' }}>
-        {source === "CTG" ? (
+        {source === 'CTG' ? (
           <>
             <h2>References</h2>
             <div style={{ border: '1px solid #ccc', padding: '1rem', overflow: 'auto' }}>
@@ -139,7 +155,11 @@ const DetailPage = () => {
               </button>
             </div>
             {fullTextExpanded && (
-              <FullText fullText={fullText} highlightedEvidence={highlightedEvidence} />
+              // iframe 버전을 사용하는 FullText
+              <FullText
+                ref={fullTextRef}
+                fullText={fullText}
+              />
             )}
           </>
         )}

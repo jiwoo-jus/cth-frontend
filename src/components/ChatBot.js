@@ -4,16 +4,13 @@ import React, { useState } from 'react';
 
 import api from '../api';
 
-// api/index.js
-// import './ChatBot.css';
-
 function copyToClipboard(text) {
   navigator.clipboard.writeText(text)
     .then(() => console.log("Copied:", text))
     .catch(err => console.error("Copy failed", err));
 }
 
-const ChatMessage = ({ message, onToggle }) => {
+const ChatMessage = ({ message, onToggle, onEvidenceClick }) => {
   const handleCopyAll = () => {
     const allText = `Q: ${message.question}\nA: ${message.answer}${
       message.evidence && message.evidence.length > 0
@@ -30,7 +27,7 @@ const ChatMessage = ({ message, onToggle }) => {
         <div style={{ flex: 1, whiteSpace: 'pre-wrap' }}>
           {message.question}
         </div>
-        <button className="copy-button" style={{ alignSelf: 'flex-start' }} onClick={() => copyToClipboard(message.question)}>
+        <button onClick={() => copyToClipboard(message.question)} style={{ alignSelf: 'flex-start' }}>
           copy
         </button>
       </div>
@@ -41,8 +38,8 @@ const ChatMessage = ({ message, onToggle }) => {
             <div style={{ flex: 1, whiteSpace: 'pre-wrap' }}>
               {message.answer}
             </div>
-            <button className="copy-button" style={{ alignSelf: 'flex-start' }} onClick={() => copyToClipboard(message.answer)}>
-              copy
+            <button onClick={() => copyToClipboard(message.answer)} style={{ alignSelf: 'flex-start' }}>
+              copy 
             </button>
           </div>
           {message.evidence && message.evidence.length > 0 && (
@@ -51,17 +48,21 @@ const ChatMessage = ({ message, onToggle }) => {
               <ul style={{ paddingLeft: '20px' }}>
                 {message.evidence.map((evi, idx) => (
                   <li key={idx} style={{ whiteSpace: 'pre-wrap', marginBottom: '4px' }}>
-                    <div style={{ display: 'flex', alignItems: 'flex-start' }}>
-                      <div style={{ flex: 1 }}>{evi}</div>
-                      <button className="copy-button" style={{ alignSelf: 'flex-start' }} onClick={() => copyToClipboard(evi)}>
-                        copy
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                      <span style={{ flex: 1 }}>{evi}</span>
+                      <button
+                        style={{ marginLeft: '8px' }}
+                        onClick={() => onEvidenceClick(evi)}
+                      >
+                        🔍
                       </button>
                     </div>
                   </li>
                 ))}
               </ul>
             </div>
-          )}
+          )
+        }
         </>
       ) : (
         <div style={{ marginTop: '4px', fontStyle: 'italic' }}>(Answer collapsed)</div>
@@ -69,14 +70,14 @@ const ChatMessage = ({ message, onToggle }) => {
       <button onClick={onToggle} style={{ marginTop: '4px' }}>
         {message.expanded ? 'Collapse' : 'Expand'}
       </button>
-      <button className="copy-button" onClick={handleCopyAll} style={{ marginTop: '4px' }}>
+      <button onClick={handleCopyAll} style={{ marginTop: '4px' }}>
         Copy All
       </button>
     </div>
   );
 };
 
-const ChatBot = ({ paperId, data, onResponse }) => {
+const ChatBot = ({ paperId, data, onResponse, onEvidenceClick }) => {
   const [question, setQuestion] = useState('');
   const [conversation, setConversation] = useState([]);
 
@@ -86,8 +87,7 @@ const ChatBot = ({ paperId, data, onResponse }) => {
       const payload = data 
         ? { content: data, userQuestion: question }
         : { paperId, userQuestion: question };
-      // const response = await api.post('/chat', payload);
-      const response = await api.post('/api/chat', payload)
+      const response = await api.post('/api/chat', payload);
       const newMessage = {
         question: question,
         answer: response.data.answer,
@@ -116,7 +116,12 @@ const ChatBot = ({ paperId, data, onResponse }) => {
     <div>
       <div>
         {conversation.map((msg, index) => (
-          <ChatMessage key={index} message={msg} onToggle={() => toggleMessage(index)} />
+          <ChatMessage
+            key={index}
+            message={msg}
+            onToggle={() => toggleMessage(index)}
+            onEvidenceClick={onEvidenceClick}
+          />
         ))}
       </div>
       <input
@@ -134,7 +139,8 @@ const ChatBot = ({ paperId, data, onResponse }) => {
 ChatBot.propTypes = {
   paperId: PropTypes.string,
   data: PropTypes.string,
-  onResponse: PropTypes.func
+  onResponse: PropTypes.func,
+  onEvidenceClick: PropTypes.func,  // 새로운 prop 추가
 };
 
 ChatMessage.propTypes = {
@@ -145,6 +151,7 @@ ChatMessage.propTypes = {
     expanded: PropTypes.bool
   }).isRequired,
   onToggle: PropTypes.func.isRequired,
+  onEvidenceClick: PropTypes.func.isRequired,
 };
 
 export default ChatBot;
