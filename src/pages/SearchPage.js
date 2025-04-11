@@ -11,11 +11,14 @@ import SearchResults from '../components/SearchResults';
 
 const SearchPage = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  // 검색 파라미터 초기값을 추출합니다.
+  const initialParams = Object.fromEntries([...searchParams]);
 
+  // 만약 location.state에 이전 검색 상태가 있다면 복원합니다.
   const locationState = location.state && location.state.searchState;
   useEffect(() => {
     if (locationState) {
-      // Restore previous search state without re-searching.
       setFilters(locationState.filters);
       setResults(locationState.results);
       setPage(locationState.page);
@@ -24,11 +27,6 @@ const SearchPage = () => {
       setCtgTokenHistory(locationState.ctgTokenHistory);
     }
   }, [locationState]);
-
-  // const [searchParams] = useSearchParams();
-  const [searchParams, setSearchParams] = useSearchParams();
-
-
 
   // 메인 검색박스 입력값
   const [query, setQuery] = useState('');
@@ -79,45 +77,44 @@ const SearchPage = () => {
 
   // URL 쿼리 파라미터 초기화 (페이지 로드시)
   useEffect(() => {
-    const params = Object.fromEntries([...searchParams]);
     setFilters({
-      cond: params.cond || '',
-      intr: params.intr || '',
-      other_term: params.other_term || '',
-      journal: params.journal || '',
-      sex: params.sex || '',
-      age: params.age || '',
-      studyType: params.studyType || '',
-      sponsor: params.sponsor || '',
-      location: params.location || '',
-      status: params.status || '',
-      sources: params.sources ? JSON.parse(params.sources) : ["PM", "PMC", "CTG"]
+      cond: initialParams.cond || '',
+      intr: initialParams.intr || '',
+      other_term: initialParams.other_term || '',
+      journal: initialParams.journal || '',
+      sex: initialParams.sex || '',
+      age: initialParams.age || '',
+      studyType: initialParams.studyType || '',
+      sponsor: initialParams.sponsor || '',
+      location: initialParams.location || '',
+      status: initialParams.status || '',
+      sources: initialParams.sources ? JSON.parse(initialParams.sources) : ["PM", "PMC", "CTG"]
     });
-    setPage(Number(params.page) || 1);
-    setPageSize(Number(params.pageSize) || 10);
-    setIsRefined(params.isRefined === 'true');
-    setRefinedQuery(params.refinedQuery ? JSON.parse(params.refinedQuery) : null);
-    setCtgTokenHistory(params.ctgTokenHistory ? JSON.parse(params.ctgTokenHistory) : {});
+    setPage(Number(initialParams.page) || 1);
+    setPageSize(Number(initialParams.pageSize) || 10);
+    setIsRefined(initialParams.isRefined === 'true');
+    setRefinedQuery(initialParams.refinedQuery ? JSON.parse(initialParams.refinedQuery) : null);
+    setCtgTokenHistory(initialParams.ctgTokenHistory ? JSON.parse(initialParams.ctgTokenHistory) : {});
     
-    if (params.cond || params.intr || params.other_term) {
+    if (initialParams.cond || initialParams.intr || initialParams.other_term) {
       handleSearch({
-        cond: params.cond || '',
-        intr: params.intr || '',
-        other_term: params.other_term || '',
-        journal: params.journal || '',
-        sex: params.sex || '',
-        age: params.age || '',
-        studyType: params.studyType || '',
-        sponsor: params.sponsor || '',
-        location: params.location || '',
-        status: params.status || '',
-        sources: params.sources ? JSON.parse(params.sources) : ["PM", "PMC", "CTG"],
-        page: Number(params.page) || 1,
-        pageSize: Number(params.pageSize) || 10,
-        isRefined: params.isRefined === 'true',
-        refinedQuery: params.refinedQuery ? JSON.parse(params.refinedQuery) : null,
-        ctgPageToken: params.ctgTokenHistory 
-          ? JSON.parse(params.ctgTokenHistory)[Number(params.page)] || null 
+        cond: initialParams.cond || '',
+        intr: initialParams.intr || '',
+        other_term: initialParams.other_term || '',
+        journal: initialParams.journal || '',
+        sex: initialParams.sex || '',
+        age: initialParams.age || '',
+        studyType: initialParams.studyType || '',
+        sponsor: initialParams.sponsor || '',
+        location: initialParams.location || '',
+        status: initialParams.status || '',
+        sources: initialParams.sources ? JSON.parse(initialParams.sources) : ["PM", "PMC", "CTG"],
+        page: Number(initialParams.page) || 1,
+        pageSize: Number(initialParams.pageSize) || 10,
+        isRefined: initialParams.isRefined === 'true',
+        refinedQuery: initialParams.refinedQuery ? JSON.parse(initialParams.refinedQuery) : null,
+        ctgPageToken: initialParams.ctgTokenHistory 
+          ? JSON.parse(initialParams.ctgTokenHistory)[Number(initialParams.page)] || null 
           : null
       });
     }
@@ -149,85 +146,39 @@ const SearchPage = () => {
     sourcesString
   ]);
 
-const handleViewDetails = (item) => {
-  if (item.source === "CTG") {
-    navigate(
-      `/detail?nctId=${item.id}&source=CTG`,
-      { state: { searchState: { filters, results, page, pageSize, refinedQuery, ctgTokenHistory } } }
-    );
-  } else {
-    navigate(
-      `/detail?paperId=${item.id}&pmcid=${item.pmcid}&source=${item.source}`,
-      { state: { searchState: { filters, results, page, pageSize, refinedQuery, ctgTokenHistory } } }
-    );
-  }
-};
-
-const handleSearch = async (customParams = null) => {
-  // 1. If this is the user’s first search attempt in the session:
-  if (!customParams) {
-    // Possibly reset certain states, e.g. page=1, isRefined=false, etc.
-    const newFilters = { ...filters };
-    setFilters(newFilters);
-    setPage(1);
-    setCtgTokenHistory({});
-    setIsRefined(false);
-    setRefinedQuery(null);
-
-    // Add user_query from the main text box:
-    customParams = { 
-      ...newFilters, 
-      user_query: query, 
-      page: 1, 
-      pageSize, 
-      ctgPageToken: null 
-    };
-
-    // Save it to local search history
-    setSearchHistory([customParams, ...searchHistory]);
-  }
-
-  // 2. Combine front-end filters with customParams
-  const effectiveFilters = customParams || { 
-    ...filters, 
-    page, 
-    pageSize, 
-    isRefined, 
-    refinedQuery, 
-    ctgPageToken: ctgTokenHistory[page] || null 
+  const handleViewDetails = (item) => {
+    if (item.source === "CTG") {
+      navigate(
+        `/detail?nctId=${item.id}&source=CTG`,
+        { state: { searchState: { filters, results, page, pageSize, refinedQuery, ctgTokenHistory } } }
+      );
+    } else {
+      navigate(
+        `/detail?paperId=${item.id}&pmcid=${item.pmcid}&source=${item.source}`,
+        { state: { searchState: { filters, results, page, pageSize, refinedQuery, ctgTokenHistory } } }
+      );
+    }
   };
 
-  // 3. Actually call your backend to do the search
-  setLoading(true);
-  try {
-    // Here you call your LLM-based refine logic OR use the existing refined data
-    const data = await searchClinicalTrials(effectiveFilters);
-
-    // 4. Use the refined query returned by the LLM (if any)
-    if (data.refinedQuery) {
-      // e.g., if LLM refined "diabetes insulin treatment" to cond="diabetes", intr="insulin"
-      effectiveFilters.cond = data.refinedQuery.cond || effectiveFilters.cond;
-      effectiveFilters.intr = data.refinedQuery.intr || effectiveFilters.intr;
-      effectiveFilters.other_term = data.refinedQuery.other_term || effectiveFilters.other_term;
-      setRefinedQuery(data.refinedQuery);
-      setIsRefined(true);
+  const handleSearch = async (customParams = null) => {
+    let effectiveFilters;
+    if (!customParams) {
+      const newFilters = { ...filters };
+      setFilters(newFilters);
+      setPage(1);
+      setCtgTokenHistory({});
+      setIsRefined(false);
+      setRefinedQuery(null);
+      // Include the main search query in the payload
+      customParams = { ...newFilters, user_query: query, page: 1, pageSize, ctgPageToken: null };
+      setSearchHistory([customParams, ...searchHistory]);
+      effectiveFilters = customParams;
+    } else {
+      effectiveFilters = customParams;
     }
-
-    // Suppose the data includes results from CTG with a next page token
-    if (data.results?.ctg?.nextPageToken) {
-      setCtgTokenHistory(prev => ({
-        ...prev, 
-        [effectiveFilters.page + 1]: data.results.ctg.nextPageToken 
-      }));
-    }
-
-    // 5. Update local state to hold these results
-    setResults(data.results);
-
-    // 6. Build a query object for the URL
+  
+    // 6. Build a query object for the URL using refined and advanced filter fields.
     const newParams = {};
-
-    // Include only fields you want in the URL
     if (effectiveFilters.cond) newParams.cond = effectiveFilters.cond;
     if (effectiveFilters.intr) newParams.intr = effectiveFilters.intr;
     if (effectiveFilters.other_term) newParams.other_term = effectiveFilters.other_term;
@@ -238,45 +189,56 @@ const handleSearch = async (customParams = null) => {
     if (filters.sponsor) newParams.sponsor = filters.sponsor;
     if (filters.location) newParams.location = filters.location;
     if (filters.status) newParams.status = filters.status;
-
-    // Always include page and pageSize so that after refresh, it returns to the correct page
+  
     newParams.page = effectiveFilters.page;
     newParams.pageSize = effectiveFilters.pageSize;
-
-    // If sources are chosen
     if (effectiveFilters.sources) {
-      // Convert to JSON if it's an array
       newParams.sources = JSON.stringify(effectiveFilters.sources);
     }
-
-    // If there's a ctgPageToken, show it; otherwise, set it to "null"
     newParams.ctgPageToken = effectiveFilters.ctgPageToken ?? "null";
-
-    // If we have a refined query object, store it as JSON
     if (effectiveFilters.refinedQuery) {
       newParams.refinedQuery = JSON.stringify(effectiveFilters.refinedQuery);
     }
-
-    // If the user has triggered refine at least once
     newParams.isRefined = effectiveFilters.isRefined === true ? "true" : "false";
-
-    // 7. Update the URL using React Router’s setSearchParams
+  
+    // Update the URL with these parameters
     setSearchParams(newParams);
-
-    // Optionally also call `navigate` to ensure the URL in the browser’s location bar is updated:
     navigate({ search: "?" + new URLSearchParams(newParams).toString() });
-
-  } catch (error) {
-    console.error("Error during search:", error);
-    setResults(null);
-  } finally {
-    setLoading(false);
-  }
-};
-
-
-
-
+  
+    setLoading(true);
+    try {
+      const requestFilters = { ...effectiveFilters, ctgPageToken: ctgTokenHistory[effectiveFilters.page] || null };
+      const data = await searchClinicalTrials(requestFilters);
+      setResults(data.results);
+      if (data.refinedQuery) {
+        effectiveFilters.cond = data.refinedQuery.cond || effectiveFilters.cond;
+        effectiveFilters.intr = data.refinedQuery.intr || effectiveFilters.intr;
+        effectiveFilters.other_term = data.refinedQuery.other_term || effectiveFilters.other_term;
+        setRefinedQuery(data.refinedQuery);
+        setIsRefined(true);
+      }
+      if (data.results?.ctg?.nextPageToken) {
+        setCtgTokenHistory(prev => ({ ...prev, [effectiveFilters.page + 1]: data.results.ctg.nextPageToken }));
+      }
+  
+      // Save the search state in sessionStorage for later restoration
+      const stateToSave = {
+        filters,
+        results: data.results,
+        page: effectiveFilters.page,
+        pageSize: effectiveFilters.pageSize,
+        refinedQuery: data.refinedQuery,
+        ctgTokenHistory
+      };
+      sessionStorage.setItem("searchState", JSON.stringify(stateToSave));
+    } catch (error) {
+      console.error("Error during search:", error);
+      setResults(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
   const handleHistorySelect = (historyItem) => {
     setFilters(historyItem);
     setPage(historyItem.page || 1);
@@ -285,16 +247,16 @@ const handleSearch = async (customParams = null) => {
     }
     handleSearch(historyItem);
   };
-
+  
   const handleResultSelect = (result) => {
     setSelectedResult(result);
   };
-
+  
   const goToPage = (newPage) => {
     setPage(newPage);
     handleSearch({ ...filters, page: newPage, pageSize, isRefined, refinedQuery, ctgPageToken: ctgTokenHistory[newPage] || null });
   };
-
+  
   const onLeftResizerMouseDown = (e) => {
     e.preventDefault();
     const startX = e.clientX;
@@ -312,7 +274,7 @@ const handleSearch = async (customParams = null) => {
     window.addEventListener("mousemove", onMouseMove);
     window.addEventListener("mouseup", onMouseUp);
   };
-
+  
   const onRightResizerMouseDown = (e) => {
     e.preventDefault();
     const startX = e.clientX;
@@ -330,9 +292,9 @@ const handleSearch = async (customParams = null) => {
     window.addEventListener("mousemove", onMouseMove);
     window.addEventListener("mouseup", onMouseUp);
   };
-
+  
   const totalPages = results && results.pm ? Math.ceil(results.pm.total / pageSize) : 1;
-
+  
   const handleLogoClick = () => {
     setFilters({
       cond: '',
@@ -358,7 +320,7 @@ const handleSearch = async (customParams = null) => {
     navigate('/');
     window.location.reload();
   };
-
+  
   return (
     <div className="flex min-h-screen">
       <div className="flex flex-col">
