@@ -1,7 +1,10 @@
 // src/components/ChatBot.js
 import PropTypes from 'prop-types';
 import React, { useState } from 'react';
-import api from '../api'; // api/index.js
+
+import api from '../api';
+
+// api/index.js
 // import './ChatBot.css';
 
 function copyToClipboard(text) {
@@ -83,7 +86,8 @@ const ChatBot = ({ paperId, data, onResponse }) => {
       const payload = data 
         ? { content: data, userQuestion: question }
         : { paperId, userQuestion: question };
-      const response = await api.post('/chat', payload);
+      // const response = await api.post('/chat', payload);
+      const response = await api.post('/api/chat', payload)
       const newMessage = {
         question: question,
         answer: response.data.answer,

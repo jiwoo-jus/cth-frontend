@@ -1,16 +1,34 @@
 // src/pages/SearchPage.js
-import React, { useState, useEffect, useRef } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
-import SearchBar from '../components/SearchBar';
-import FilterPanel from '../components/FilterPanel';
-import SearchResults from '../components/SearchResults';
-import SearchHistorySidebar from '../components/SearchHistorySidebar';
-import DetailSidebar from '../components/DetailSidebar';
+import React, { useEffect, useRef, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+
 import { searchClinicalTrials } from '../api/searchApi';
+import DetailSidebar from '../components/DetailSidebar';
+import FilterPanel from '../components/FilterPanel';
+import SearchBar from '../components/SearchBar';
+import SearchHistorySidebar from '../components/SearchHistorySidebar';
+import SearchResults from '../components/SearchResults';
 
 const SearchPage = () => {
   const navigate = useNavigate();
+
+  const locationState = location.state && location.state.searchState;
+  useEffect(() => {
+    if (locationState) {
+      // Restore previous search state without re-searching.
+      setFilters(locationState.filters);
+      setResults(locationState.results);
+      setPage(locationState.page);
+      setPageSize(locationState.pageSize);
+      setRefinedQuery(locationState.refinedQuery);
+      setCtgTokenHistory(locationState.ctgTokenHistory);
+    }
+  }, [locationState]);
+
+  // const [searchParams] = useSearchParams();
   const [searchParams, setSearchParams] = useSearchParams();
+
+
 
   // 메인 검색박스 입력값
   const [query, setQuery] = useState('');
@@ -131,52 +149,133 @@ const SearchPage = () => {
     sourcesString
   ]);
 
-  // 검색 함수: 검색 버튼 클릭 시, user_query 필드로 메인 검색박스 입력값을 추가
-  const handleSearch = async (customParams = null) => {
-    if (!customParams) {
-      const newFilters = { ...filters };
-      setFilters(newFilters);
-      setPage(1);
-      setCtgTokenHistory({});
-      setIsRefined(false);
-      setRefinedQuery(null);
-      // 여기서 user_query 필드를 추가합니다.
-      customParams = { ...newFilters, user_query: query, page: 1, pageSize, ctgPageToken: null };
-      setSearchHistory([customParams, ...searchHistory]);
-    }
-    const effectiveFilters = customParams || { ...filters, page, pageSize, isRefined, refinedQuery, ctgPageToken: ctgTokenHistory[page] || null };
+const handleViewDetails = (item) => {
+  if (item.source === "CTG") {
+    navigate(
+      `/detail?nctId=${item.id}&source=CTG`,
+      { state: { searchState: { filters, results, page, pageSize, refinedQuery, ctgTokenHistory } } }
+    );
+  } else {
+    navigate(
+      `/detail?paperId=${item.id}&pmcid=${item.pmcid}&source=${item.source}`,
+      { state: { searchState: { filters, results, page, pageSize, refinedQuery, ctgTokenHistory } } }
+    );
+  }
+};
 
-    const newParams = {
-      ...effectiveFilters,
-      page: effectiveFilters.page,
-      pageSize: effectiveFilters.pageSize,
-      isRefined: effectiveFilters.isRefined,
-      refinedQuery: effectiveFilters.refinedQuery ? JSON.stringify(effectiveFilters.refinedQuery) : "",
-      ctgTokenHistory: JSON.stringify(ctgTokenHistory)
+const handleSearch = async (customParams = null) => {
+  // 1. If this is the user’s first search attempt in the session:
+  if (!customParams) {
+    // Possibly reset certain states, e.g. page=1, isRefined=false, etc.
+    const newFilters = { ...filters };
+    setFilters(newFilters);
+    setPage(1);
+    setCtgTokenHistory({});
+    setIsRefined(false);
+    setRefinedQuery(null);
+
+    // Add user_query from the main text box:
+    customParams = { 
+      ...newFilters, 
+      user_query: query, 
+      page: 1, 
+      pageSize, 
+      ctgPageToken: null 
     };
-    if (effectiveFilters.sources) {
-      newParams.sources = JSON.stringify(effectiveFilters.sources);
-    }
-    setSearchParams(newParams);
-    navigate({ search: "?" + new URLSearchParams(newParams).toString() });
 
-    setLoading(true);
-    try {
-      const requestFilters = { ...effectiveFilters, ctgPageToken: ctgTokenHistory[effectiveFilters.page] || null };
-      const data = await searchClinicalTrials(requestFilters);
-      setResults(data.results);
-      if (data.results.ctg && data.results.ctg.nextPageToken) {
-        setCtgTokenHistory(prev => ({ ...prev, [effectiveFilters.page + 1]: data.results.ctg.nextPageToken }));
-      }
+    // Save it to local search history
+    setSearchHistory([customParams, ...searchHistory]);
+  }
+
+  // 2. Combine front-end filters with customParams
+  const effectiveFilters = customParams || { 
+    ...filters, 
+    page, 
+    pageSize, 
+    isRefined, 
+    refinedQuery, 
+    ctgPageToken: ctgTokenHistory[page] || null 
+  };
+
+  // 3. Actually call your backend to do the search
+  setLoading(true);
+  try {
+    // Here you call your LLM-based refine logic OR use the existing refined data
+    const data = await searchClinicalTrials(effectiveFilters);
+
+    // 4. Use the refined query returned by the LLM (if any)
+    if (data.refinedQuery) {
+      // e.g., if LLM refined "diabetes insulin treatment" to cond="diabetes", intr="insulin"
+      effectiveFilters.cond = data.refinedQuery.cond || effectiveFilters.cond;
+      effectiveFilters.intr = data.refinedQuery.intr || effectiveFilters.intr;
+      effectiveFilters.other_term = data.refinedQuery.other_term || effectiveFilters.other_term;
       setRefinedQuery(data.refinedQuery);
       setIsRefined(true);
-    } catch (error) {
-      console.error("Error during search:", error);
-      setResults(null);
-    } finally {
-      setLoading(false);
     }
-  };
+
+    // Suppose the data includes results from CTG with a next page token
+    if (data.results?.ctg?.nextPageToken) {
+      setCtgTokenHistory(prev => ({
+        ...prev, 
+        [effectiveFilters.page + 1]: data.results.ctg.nextPageToken 
+      }));
+    }
+
+    // 5. Update local state to hold these results
+    setResults(data.results);
+
+    // 6. Build a query object for the URL
+    const newParams = {};
+
+    // Include only fields you want in the URL
+    if (effectiveFilters.cond) newParams.cond = effectiveFilters.cond;
+    if (effectiveFilters.intr) newParams.intr = effectiveFilters.intr;
+    if (effectiveFilters.other_term) newParams.other_term = effectiveFilters.other_term;
+    if (filters.journal) newParams.journal = filters.journal;
+    if (filters.sex) newParams.sex = filters.sex;
+    if (filters.age) newParams.age = filters.age;
+    if (filters.studyType) newParams.studyType = filters.studyType;
+    if (filters.sponsor) newParams.sponsor = filters.sponsor;
+    if (filters.location) newParams.location = filters.location;
+    if (filters.status) newParams.status = filters.status;
+
+    // Always include page and pageSize so that after refresh, it returns to the correct page
+    newParams.page = effectiveFilters.page;
+    newParams.pageSize = effectiveFilters.pageSize;
+
+    // If sources are chosen
+    if (effectiveFilters.sources) {
+      // Convert to JSON if it's an array
+      newParams.sources = JSON.stringify(effectiveFilters.sources);
+    }
+
+    // If there's a ctgPageToken, show it; otherwise, set it to "null"
+    newParams.ctgPageToken = effectiveFilters.ctgPageToken ?? "null";
+
+    // If we have a refined query object, store it as JSON
+    if (effectiveFilters.refinedQuery) {
+      newParams.refinedQuery = JSON.stringify(effectiveFilters.refinedQuery);
+    }
+
+    // If the user has triggered refine at least once
+    newParams.isRefined = effectiveFilters.isRefined === true ? "true" : "false";
+
+    // 7. Update the URL using React Router’s setSearchParams
+    setSearchParams(newParams);
+
+    // Optionally also call `navigate` to ensure the URL in the browser’s location bar is updated:
+    navigate({ search: "?" + new URLSearchParams(newParams).toString() });
+
+  } catch (error) {
+    console.error("Error during search:", error);
+    setResults(null);
+  } finally {
+    setLoading(false);
+  }
+};
+
+
+
 
   const handleHistorySelect = (historyItem) => {
     setFilters(historyItem);
@@ -286,7 +385,11 @@ const SearchPage = () => {
         {loading ? (
           <div className="text-center mt-6">Loading...</div>
         ) : (
-          <SearchResults results={results} onResultSelect={handleResultSelect} />
+          <SearchResults
+            results={results}
+            onResultSelect={handleResultSelect}
+            onViewDetails={handleViewDetails}
+          />
         )}
         {results && results.pm && (
           <div className="flex justify-center mt-4 space-x-4">
