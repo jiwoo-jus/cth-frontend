@@ -1,10 +1,11 @@
+import PropTypes from 'prop-types';
 // src/components/SearchResults.js
 import React from 'react';
-import PropTypes from 'prop-types';
 import { useNavigate } from 'react-router-dom';
 
 const SearchResults = ({ results, onResultSelect }) => {
   const navigate = useNavigate();
+
   if (!results) {
     return <div>No results to display.</div>;
   }
@@ -12,28 +13,25 @@ const SearchResults = ({ results, onResultSelect }) => {
   const pmResults = results.pm || { total: 0, results: [] };
   const ctgResults = results.ctg || { total: 0, results: [] };
 
-  // const handleItemClick = (item) => {
-  //   onResultSelect(item);
-  //   if (item.source === "CTG") {
-  //     navigate(`/detail?nctId=${item.id}&source=CTG`);
-  //   } else {
-  //     navigate(`/detail?paperId=${item.id}&pmcid=${item.pmid}&source=${item.source}`);
-  //   }
-  // };
+  // 기존 항목 클릭 시 오른쪽 사이드바 업데이트하는 함수
+  const handleItemClick = (item) => {
+    onResultSelect(item);
+  };
 
-  // src/components/SearchResults.js (핵심 부분)
-const handleItemClick = (item) => {
-  onResultSelect(item);
-  if (item.source === "CTG") {
-    navigate(`/detail?nctId=${item.id}&source=CTG`);
-  } else {
-    navigate(`/detail?paperId=${item.id}&pmcid=${item.pmid}&source=${item.source}`);
-  }
-};
+  // "View Details" 버튼 클릭 시 상세페이지로 이동하는 함수
+  const handleViewDetails = (item) => {
+    console.log("View Details clicked for item:", item);
+    if (item.source === "CTG") {
+      navigate(`/detail?nctId=${item.nctid}&source=CTG`);
+    } else {
+      navigate(`/detail?paperId=${item.id}&pmcid=${item.pmcid}&source=${item.source}`);
 
+    }
+  };
 
   return (
     <div className="mt-6">
+      {/* PubMed Results */}
       <div className="mb-8">
         <h3 className="text-xl font-semibold mb-2">PubMed Results ({pmResults.total})</h3>
         {pmResults.results.length > 0 ? (
@@ -50,6 +48,15 @@ const handleItemClick = (item) => {
                 <p className="text-sm text-gray-500">
                   PMID: {item.pmid} {item.pmcid && `| PMCID: ${item.pmcid}`}
                 </p>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation(); // 항목 클릭과 별도로 동작하게 함
+                    handleViewDetails(item);
+                  }}
+                  className="mt-2 px-3 py-1 bg-green-500 text-white text-sm rounded hover:bg-green-600"
+                >
+                  View Details
+                </button>
               </li>
             ))}
           </ul>
@@ -57,6 +64,7 @@ const handleItemClick = (item) => {
           <p>No PubMed results found.</p>
         )}
       </div>
+      {/* CTG Results */}
       <div>
         <h3 className="text-xl font-semibold mb-2">ClinicalTrials.gov Results ({ctgResults.total})</h3>
         {ctgResults.results.length > 0 ? (
@@ -73,6 +81,15 @@ const handleItemClick = (item) => {
                 {study.conditions && study.conditions.length > 0 && (
                   <p className="text-sm">Conditions: {study.conditions.join(", ")}</p>
                 )}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleViewDetails(study);
+                  }}
+                  className="mt-2 px-3 py-1 bg-green-500 text-white text-sm rounded hover:bg-green-600"
+                >
+                  View Details
+                </button>
               </li>
             ))}
           </ul>
@@ -96,7 +113,7 @@ SearchResults.propTypes = {
           pubDate: PropTypes.string,
           authors: PropTypes.arrayOf(PropTypes.string),
           pmid: PropTypes.string,
-          pmcid: PropTypes.string
+          pmcid: PropTypes.string,
         })
       )
     }),
@@ -107,13 +124,13 @@ SearchResults.propTypes = {
           id: PropTypes.string,
           title: PropTypes.string,
           status: PropTypes.string,
-          conditions: PropTypes.arrayOf(PropTypes.string)
+          conditions: PropTypes.arrayOf(PropTypes.string),
         })
       ),
-      nextPageToken: PropTypes.string
+      nextPageToken: PropTypes.string,
     })
   }),
-  onResultSelect: PropTypes.func.isRequired
+  onResultSelect: PropTypes.func.isRequired,
 };
 
 export default SearchResults;
