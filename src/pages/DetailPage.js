@@ -92,15 +92,49 @@ const DetailPage = () => {
   return (
     <div style={{ padding: '1rem' }}>
       <header style={{ display: 'flex', alignItems: 'center', marginBottom: '1rem' }}>
-        <h1 style={{ cursor: 'pointer', flex: 1 }} onClick={handleBack}>
+        <h1
+          style={{
+            cursor: 'pointer',
+            flex: 1,
+            fontSize: '2rem', // Larger font size for h1
+            fontWeight: 'bold', // Bold font
+            color: '#003366', // Dark blue color
+            margin: 0,
+            padding: 0,
+          }}
+          onClick={handleBack}
+        >
           Clinical Trials Hub
         </h1>
-        <button onClick={handleBack}>Back</button>
+        <button
+          style={{
+            backgroundColor: '#003366',
+            color: '#fff',
+            border: 'none',
+            padding: '0.5rem 1rem',
+            cursor: 'pointer',
+            borderRadius: '4px',
+          }}
+          onClick={handleBack}
+        >
+          Back
+        </button>
       </header>
 
       <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
         <div style={{ flex: 3, border: '1px solid #ccc', padding: '1rem' }}>
-          <h2>ChatBot</h2>
+          <h2
+            style={{
+              fontSize: '1.5rem', // Slightly smaller than h1
+              fontWeight: 'bold',
+              color: '#00509E', // Lighter blue
+              borderBottom: '2px solid #00509E', // Add underline
+              paddingBottom: '0.5rem',
+              marginBottom: '1rem',
+            }}
+          >
+            ChatBot
+          </h2>
           {/* evidence 바로가기 -> scrollToEvidence로 전달 */}
           <ChatBot
             paperId={paperId}
@@ -110,7 +144,18 @@ const DetailPage = () => {
           />
         </div>
         <div style={{ flex: 7, border: '1px solid #ccc', padding: '1rem' }}>
-          <h2>Structured Info</h2>
+          <h2
+            style={{
+              fontSize: '1.5rem',
+              fontWeight: 'bold',
+              color: '#00509E',
+              borderBottom: '2px solid #00509E',
+              paddingBottom: '0.5rem',
+              marginBottom: '1rem',
+            }}
+          >
+            Structured Info
+          </h2>
           {structuredInfo ? (
             <StructuredInfoTabs structuredInfo={structuredInfo} />
           ) : (
@@ -122,7 +167,18 @@ const DetailPage = () => {
       <div style={{ border: '1px solid #ccc', padding: '1rem', marginBottom: '1rem' }}>
         {source === 'CTG' ? (
           <>
-            <h2>References</h2>
+            <h2
+              style={{
+                fontSize: '1.5rem',
+                fontWeight: 'bold',
+                color: '#00509E',
+                borderBottom: '2px solid #00509E',
+                paddingBottom: '0.5rem',
+                marginBottom: '1rem',
+              }}
+            >
+              References
+            </h2>
             <div style={{ border: '1px solid #ccc', padding: '1rem', overflow: 'auto' }}>
               {structuredInfo && structuredInfo.references && structuredInfo.references.length > 0 ? (
                 structuredInfo.references.map((ref, index) => (
@@ -149,8 +205,29 @@ const DetailPage = () => {
         ) : (
           <>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2>Full Text</h2>
-              <button onClick={() => setFullTextExpanded(prev => !prev)}>
+              <h2
+                style={{
+                  fontSize: '1.5rem',
+                  fontWeight: 'bold',
+                  color: '#00509E',
+                  borderBottom: '2px solid #00509E',
+                  paddingBottom: '0.5rem',
+                  marginBottom: '1rem',
+                }}
+              >
+                Full Text
+              </h2>
+              <button
+                style={{
+                  backgroundColor: '#00509E',
+                  color: '#fff',
+                  border: 'none',
+                  padding: '0.5rem 1rem',
+                  cursor: 'pointer',
+                  borderRadius: '4px',
+                }}
+                onClick={() => setFullTextExpanded(prev => !prev)}
+              >
                 {fullTextExpanded ? 'Collapse' : 'Expand'}
               </button>
             </div>

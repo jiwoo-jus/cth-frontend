@@ -43,11 +43,21 @@ const StructuredInfoTabs = ({ structuredInfo }) => {
             style={{
               padding: '0.5rem 1rem',
               border: 'none',
-              borderBottom: activeTab === key ? '3px solid blue' : 'none',
-              background: 'none',
+              borderBottom: activeTab === key ? '3px solid #00509E' : 'none', // Blue underline for active tab
+              background: activeTab === key ? '#f0f8ff' : 'none', // Light blue background for active tab
+              fontWeight: activeTab === key ? 'bold' : 'normal', // Bold font for active tab
+              color: activeTab === key ? '#00509E' : '#333', // Blue text for active tab
               cursor: 'pointer',
+              borderRadius: '4px 4px 0 0', // Rounded corners for tabs
+              transition: 'background 0.3s ease, color 0.3s ease', // Smooth hover effect
             }}
             onClick={() => setActiveTab(key)}
+            onMouseEnter={(e) => {
+              if (activeTab !== key) e.target.style.background = '#f9f9f9'; // Light gray on hover
+            }}
+            onMouseLeave={(e) => {
+              if (activeTab !== key) e.target.style.background = 'none'; // Reset background on hover out
+            }}
           >
             {key}
           </button>
