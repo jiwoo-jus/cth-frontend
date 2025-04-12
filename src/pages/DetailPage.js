@@ -110,6 +110,7 @@ const DetailPage = () => {
           style={{
             backgroundColor: '#003366',
             color: '#fff',
+            fontWeight: 'bold',
             border: 'none',
             padding: '0.5rem 1rem',
             cursor: 'pointer',
@@ -225,10 +226,18 @@ const DetailPage = () => {
                   padding: '0.5rem 1rem',
                   cursor: 'pointer',
                   borderRadius: '4px',
+                  fontWeight: 'bold',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem', // Add spacing for icon
+                  transition: 'background 0.3s ease, color 0.3s ease',
                 }}
+                onMouseEnter={(e) => (e.target.style.backgroundColor = '#003366')}
+                onMouseLeave={(e) => (e.target.style.backgroundColor = '#00509E')}
                 onClick={() => setFullTextExpanded(prev => !prev)}
               >
                 {fullTextExpanded ? 'Collapse' : 'Expand'}
+                <span style={{ fontSize: '1rem' }}>{fullTextExpanded ? '▲' : '▼'}</span> {/* Add chevron icon */}
               </button>
             </div>
             {fullTextExpanded && (
