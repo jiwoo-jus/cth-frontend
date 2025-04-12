@@ -72,8 +72,7 @@ const StructuredInfoTabs = ({ structuredInfo }) => {
             nodeKey=""
             data={tabContent}
             depth={0}
-            // depth2부터 접힘
-            defaultCollapsedDepth={2}
+            defaultCollapsedDepth={0}
           />
         ) : (
           <div>No data for {activeTab}</div>

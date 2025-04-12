@@ -21,7 +21,11 @@ const FoldableNode = ({
 }) => {
   // depth < defaultCollapsedDepth 이면 초기에 펼쳐짐(expanded) 상태로
   // depth >= defaultCollapsedDepth 이면 접힘(!expanded) 상태로.
-  const [expanded, setExpanded] = useState(depth < defaultCollapsedDepth);
+
+  // depth 계산과 접힘 여부 설정
+  const isRootWrapper = nodeKey === "";
+  const [expanded, setExpanded] = useState(isRootWrapper || depth < defaultCollapsedDepth);
+
 
   const toggleExpand = (e) => {
     e.stopPropagation();
@@ -46,7 +50,7 @@ const FoldableNode = ({
               onClick={toggleExpand}
               style={{ cursor: 'pointer', fontWeight: 'bold' }}
             >
-              {nodeKey} <span style={{ color: '#0000FF' }}>{expanded ? '-' : '+'}</span>
+              <span style={{ color: '#00509E' }}>{expanded ? '▼' : '▶'}</span> {nodeKey}
             </div>
           )}
           {expanded && (
@@ -77,7 +81,7 @@ const FoldableNode = ({
               onClick={toggleExpand}
               style={{ cursor: 'pointer', fontWeight: 'bold' }}
             >
-              {nodeKey} <span style={{ color: '#0000FF' }}>{expanded ? '-' : '+'}</span>
+              <span style={{ color: '#00509E' }}>{expanded ? '▼' : '▶'}</span> {nodeKey}
             </div>
           )}
           {expanded && (
