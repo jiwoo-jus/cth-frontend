@@ -157,7 +157,17 @@ const DetailPage = () => {
           {structuredInfo ? (
             <StructuredInfoTabs structuredInfo={structuredInfo} />
           ) : (
-            <div>Loading structured info...</div>
+            // Enhanced Loading Indicator
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'center', 
+              alignItems: 'center', 
+              height: '100px', // Give it some height
+              color: '#666', 
+              fontSize: '1.1rem' 
+            }}>
+              Loading structured info...
+            </div>
           )}
         </div>
       </div>

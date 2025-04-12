@@ -124,10 +124,12 @@ const ChatMessage = ({ message, onToggle, onEvidenceClick }) => {
 const ChatBot = ({ paperId, data, onResponse, onEvidenceClick }) => {
   const [question, setQuestion] = useState('');
   const [conversation, setConversation] = useState([]);
+  const [loading, setLoading] = useState(false); // Add loading state
 
   const handleAsk = async () => {
-    if (!question.trim()) return;
+    if (!question.trim() || loading) return; // Prevent multiple requests
 
+    setLoading(true); // Set loading to true
     try {
       const payload = data
         ? { content: data, userQuestion: question }
@@ -147,6 +149,9 @@ const ChatBot = ({ paperId, data, onResponse, onEvidenceClick }) => {
       if (onResponse) onResponse(response.data);
     } catch (error) {
       console.error('Chat error:', error);
+      // Optionally display an error message to the user
+    } finally {
+      setLoading(false); // Set loading to false after request finishes
     }
   };
 
@@ -170,30 +175,39 @@ const ChatBot = ({ paperId, data, onResponse, onEvidenceClick }) => {
           />
         ))}
       </div>
+      {/* Display loading indicator below conversation */}
+      {loading && (
+        <div style={{ textAlign: 'center', padding: '1rem', color: '#666' }}>
+          Loading response...
+        </div>
+      )}
       <div className="flex gap-2 mt-4">
         <input
           type="text"
           placeholder="Ask a question about this paper..."
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
+          onKeyPress={(e) => e.key === 'Enter' && handleAsk()} // Optional: Allow Enter key to submit
+          disabled={loading} // Disable input while loading
           className="flex-1 border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <button
           onClick={handleAsk}
+          disabled={loading} // Disable button while loading
           style={{
-            backgroundColor: '#00509E',
+            backgroundColor: loading ? '#ccc' : '#00509E', // Gray out button when loading
             color: '#fff',
             border: 'none',
             padding: '0.5rem 1rem',
-            cursor: 'pointer',
+            cursor: loading ? 'not-allowed' : 'pointer',
             borderRadius: '4px',
             fontWeight: 'bold',
             transition: 'background 0.3s ease',
           }}
-          onMouseEnter={(e) => (e.target.style.backgroundColor = '#003366')}
-          onMouseLeave={(e) => (e.target.style.backgroundColor = '#00509E')}
+          onMouseEnter={(e) => !loading && (e.target.style.backgroundColor = '#003366')}
+          onMouseLeave={(e) => !loading && (e.target.style.backgroundColor = '#00509E')}
         >
-          Ask
+          {loading ? 'Asking...' : 'Ask'} {/* Change button text */}
         </button>
       </div>
     </div>
