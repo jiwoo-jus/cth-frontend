@@ -7,6 +7,7 @@ import ChatBot from '../components/ChatBot';
 import FullText from '../components/FullText';
 import StructuredInfoTabs from '../components/StructuredInfoTabs';
 
+// eslint-disable-next-line no-undef
 const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5050';
 
 const DetailPage = () => {
