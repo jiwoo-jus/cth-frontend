@@ -18,25 +18,14 @@ const DetailPage = () => {
   const [fullText, setFullText] = useState('');
   const [fullTextExpanded, setFullTextExpanded] = useState(false);
 
-  // ChatBot에서 evidence를 하이라이트하지 않고, 바로 iframe 내부에서 스크롤
-  // => 이 경우, 별도 evidenceList state는 필요치 않음.
-  // const [evidenceList, setEvidenceList] = useState([]);
-
-  // FullText 컴포넌트를 참조하기 위한 ref
   const fullTextRef = useRef(null);
 
   useEffect(() => {
-    // PM/PMC 케이스
+    // Fetch Full Text First
     if ((source === 'PM' || source === 'PMC') && pmcid) {
-      fetch(`${BASE_URL}/api/paper/structured_info?pmcid=${pmcid}`)
-        .then(res => res.json())
-        .then((data) => setStructuredInfo(data.structured_info))
-        .catch((err) => console.error(err));
-
       fetch(`${BASE_URL}/api/paper/pmc_full_text_html?pmcid=${pmcid}`)
         .then(res => res.text())
         .then(htmlString => {
-          // 원본 코드에서 불필요한 영역 제거
           const parser = new DOMParser();
           const doc = parser.parseFromString(htmlString, 'text/html');
           const article = doc.querySelector("#main-content > article");
@@ -52,37 +41,46 @@ const DetailPage = () => {
             });
             const cleanedHtml = article.outerHTML;
             setFullText(cleanedHtml);
+            // Auto-expand if full text is available
+            setFullTextExpanded(true);
           } else {
             setFullText(htmlString);
           }
         })
         .catch((err) => console.error(err));
     }
-    // CTG 케이스
+
+    // Fetch Structured Info Second
+    if ((source === 'PM' || source === 'PMC') && pmcid) {
+      fetch(`${BASE_URL}/api/paper/structured_info?pmcid=${pmcid}`)
+        .then(res => res.json())
+        .then((data) => setStructuredInfo(data.structured_info))
+        .catch((err) => console.error(err));
+    }
+
     if (source === 'CTG' && nctId) {
       fetch(`${BASE_URL}/api/paper/ctg_detail?nctId=${nctId}`)
         .then((res) => res.json())
         .then((data) => {
           setStructuredInfo(data.structured_info);
           setFullText(data.full_text || '');
+          // Auto-expand if full text is available
+          if (data.full_text) {
+            setFullTextExpanded(true);
+          }
         })
         .catch((err) => console.error(err));
     }
   }, [paperId, pmcid, nctId, source]);
 
-  // evidence "바로가기" 버튼 -> iframe 내부 스크롤 & 하이라이트
   const scrollToEvidence = (evidenceText) => {
     if (fullTextRef.current?.highlightEvidence) {
       fullTextRef.current.highlightEvidence(evidenceText);
     }
   };
 
-  // ChatBot 응답 핸들러
-  // (굳이 evidenceList를 따로 보관하지 않고, scrollToEvidence만 사용)
   const handleChatResponse = (response) => {
     console.log('Chat response evidence:', response.evidence);
-    // 만약 백엔드에서 "highlighted_article"처럼 iframe 쓰지 않고 div로 렌더링할 때만 쓰도록 한 코드를
-    // 제거하거나 무시해도 됨. 현재는 iframe이라 highlight 코드는 scrollToEvidence로 처리.
   };
 
   const handleBack = () => {
@@ -136,7 +134,6 @@ const DetailPage = () => {
           >
             ChatBot
           </h2>
-          {/* evidence 바로가기 -> scrollToEvidence로 전달 */}
           <ChatBot
             paperId={paperId}
             data={fullText}
@@ -241,7 +238,6 @@ const DetailPage = () => {
               </button>
             </div>
             {fullTextExpanded && (
-              // iframe 버전을 사용하는 FullText
               <FullText
                 ref={fullTextRef}
                 fullText={fullText}
