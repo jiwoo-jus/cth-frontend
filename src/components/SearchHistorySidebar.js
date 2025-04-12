@@ -1,4 +1,5 @@
 // src/components/SearchHistorySidebar.js
+
 import React from 'react';
 import PropTypes from 'prop-types';
 
@@ -12,7 +13,8 @@ const labelMap = {
   studyType: "Study Type",
   sponsor: "Sponsor",
   location: "Location",
-  status: "Status"
+  status: "Status",
+  sources: "Sources"
 };
 
 const SearchHistorySidebar = ({ history, onSelect, isOpen, toggleSidebar, sidebarWidth }) => {
@@ -33,7 +35,7 @@ const SearchHistorySidebar = ({ history, onSelect, isOpen, toggleSidebar, sideba
             <ul>
               {history.map((item, index) => (
                 <li key={index} className="mb-2 border-b pb-1">
-                  <button 
+                  <button
                     onClick={() => onSelect(item)}
                     className="block text-left w-full text-gray-700 hover:bg-gray-100 rounded p-1"
                   >
@@ -41,7 +43,8 @@ const SearchHistorySidebar = ({ history, onSelect, isOpen, toggleSidebar, sideba
                       if (!value) return null;
                       return (
                         <div key={key}>
-                          <span className="font-bold">{labelMap[key] || key}:</span> {value}
+                          <span className="font-bold">{labelMap[key] || key}:</span>{" "}
+                          {Array.isArray(value) ? value.join(", ") : value}
                         </div>
                       );
                     })}
@@ -69,10 +72,7 @@ SearchHistorySidebar.propTypes = {
       sponsor: PropTypes.string,
       location: PropTypes.string,
       status: PropTypes.string,
-      page: PropTypes.number,
-      pageSize: PropTypes.number,
-      isRefined: PropTypes.bool,
-      refinedQuery: PropTypes.any
+      sources: PropTypes.arrayOf(PropTypes.string)
     })
   ).isRequired,
   onSelect: PropTypes.func.isRequired,

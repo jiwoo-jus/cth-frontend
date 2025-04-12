@@ -11,10 +11,18 @@ const sourceOptions = [
 const FilterPanel = ({ filters, setFilters }) => {
   const [showMore, setShowMore] = React.useState(false);
 
+  // const handleChange = (e) => {
+  //   setFilters({
+  //     ...filters,
+  //     [e.target.name]: e.target.value,
+  //   });
+  // };
   const handleChange = (e) => {
+    const { name, value } = e.target;
+    // 값이 빈 문자열이면 null로 변환하여 저장
     setFilters({
       ...filters,
-      [e.target.name]: e.target.value,
+      [name]: value === '' ? null : value,
     });
   };
 
@@ -37,7 +45,7 @@ const FilterPanel = ({ filters, setFilters }) => {
           <input
             type="text"
             name="cond"
-            value={filters.cond}
+            value={filters.cond || ''}
             onChange={handleChange}
             placeholder="e.g., Diabetes"
             className="mt-1 block w-full border border-gray-300 rounded-md"
@@ -48,7 +56,7 @@ const FilterPanel = ({ filters, setFilters }) => {
           <input
             type="text"
             name="intr"
-            value={filters.intr}
+            value={filters.intr || ''}
             onChange={handleChange}
             placeholder="e.g., Insulin"
             className="mt-1 block w-full border border-gray-300 rounded-md"
@@ -59,7 +67,7 @@ const FilterPanel = ({ filters, setFilters }) => {
           <input
             type="text"
             name="other_term"
-            value={filters.other_term}
+            value={filters.other_term || ''}
             onChange={handleChange}
             placeholder="Additional keywords"
             className="mt-1 block w-full border border-gray-300 rounded-md"
@@ -96,7 +104,7 @@ const FilterPanel = ({ filters, setFilters }) => {
             <input
               type="text"
               name="journal"
-              value={filters.journal || ""}
+              value={filters.journal || ''}
               onChange={handleChange}
               placeholder="e.g., BMJ Open"
               className="mt-1 block w-full border border-gray-300 rounded-md"
@@ -106,7 +114,7 @@ const FilterPanel = ({ filters, setFilters }) => {
             <label className="block text-sm font-medium">Sex</label>
             <select
               name="sex"
-              value={filters.sex || ""}
+              value={filters.sex || ''}
               onChange={handleChange}
               className="mt-1 block w-full border border-gray-300 rounded-md"
             >
@@ -133,7 +141,7 @@ const FilterPanel = ({ filters, setFilters }) => {
             <label className="block text-sm font-medium">Study Type</label>
             <select
               name="studyType"
-              value={filters.studyType || ""}
+              value={filters.studyType || ''}
               onChange={handleChange}
               className="mt-1 block w-full border border-gray-300 rounded-md"
             >
@@ -146,7 +154,7 @@ const FilterPanel = ({ filters, setFilters }) => {
             <input
               type="text"
               name="sponsor"
-              value={filters.sponsor || ""}
+              value={filters.sponsor || ''}
               onChange={handleChange}
               placeholder="e.g., National Institute of Health"
               className="mt-1 block w-full border border-gray-300 rounded-md"
@@ -157,7 +165,7 @@ const FilterPanel = ({ filters, setFilters }) => {
             <input
               type="text"
               name="location"
-              value={filters.location || ""}
+              value={filters.location || ''}
               onChange={handleChange}
               placeholder="e.g., Columbus, Ohio"
               className="mt-1 block w-full border border-gray-300 rounded-md"
@@ -168,7 +176,7 @@ const FilterPanel = ({ filters, setFilters }) => {
             <input
               type="text"
               name="status"
-              value={filters.status || ""}
+              value={filters.status || ''}
               onChange={handleChange}
               placeholder="e.g., COMPLETED, TERMINATED"
               className="mt-1 block w-full border border-gray-300 rounded-md"

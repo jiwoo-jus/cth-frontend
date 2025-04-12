@@ -1,6 +1,6 @@
-// src/pages/SearchPage.js
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import _isEqual from 'lodash/isEqual';
 
 import { searchClinicalTrials } from '../api/searchApi';
 import DetailSidebar from '../components/DetailSidebar';
@@ -9,237 +9,429 @@ import SearchBar from '../components/SearchBar';
 import SearchHistorySidebar from '../components/SearchHistorySidebar';
 import SearchResults from '../components/SearchResults';
 
+// 세션 스토리지 캐시 key
+const SESSION_KEY = "searchState";
+
+// URL 생성 시 불필요한 (빈) 값들을 제거하는 헬퍼 함수
+const buildUrlParams = (filtersObj) => {
+  const params = {};
+  Object.entries(filtersObj).forEach(([key, value]) => {
+    // user_query는 사용하지 않으며, 빈 문자열/undefined/null은 제외
+    if (key === 'user_query') return;
+    if (value === undefined || value === null || value === '') return;
+    if (key === "sources" || key === "refinedQuery") {
+      params[key] = JSON.stringify(value);
+    } else {
+      params[key] = value;
+    }
+  });
+  return params;
+};
+
+// 초기 필터 상태 (모든 빈 값은 null)
+const defaultFilters = () => ({
+  cond: null,
+  intr: null,
+  other_term: null,
+  journal: null,
+  sex: null,
+  age: null,
+  studyType: null,
+  sponsor: null,
+  location: null,
+  status: null,
+  sources: ["PM", "PMC", "CTG"]
+});
+
+// URL params 또는 기타 객체에서 필터 생성 (빈 값은 null 처리)
+const createFilters = (params = {}) => ({
+  cond: params.cond || null,
+  intr: params.intr || null,
+  other_term: params.other_term || null,
+  journal: params.journal || null,
+  sex: params.sex || null,
+  age: params.age || null,
+  studyType: params.studyType || null,
+  sponsor: params.sponsor || null,
+  location: params.location || null,
+  status: params.status || null,
+  sources: params.sources ? JSON.parse(params.sources) : ["PM", "PMC", "CTG"]
+});
+
 const SearchPage = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  // 검색 파라미터 초기값을 추출합니다.
   const initialParams = Object.fromEntries([...searchParams]);
 
-  // 만약 location.state에 이전 검색 상태가 있다면 복원합니다.
-  const locationState = location.state && location.state.searchState;
-  useEffect(() => {
-    if (locationState) {
-      setFilters(locationState.filters);
-      setResults(locationState.results);
-      setPage(locationState.page);
-      setPageSize(locationState.pageSize);
-      setRefinedQuery(locationState.refinedQuery);
-      setCtgTokenHistory(locationState.ctgTokenHistory);
-    }
-  }, [locationState]);
+  // 상세 페이지에서 복귀 여부를 판단하는 ref
+  const cameFromDetailRef = useRef(false);
+  // 백엔드 자동 업데이트에 의한 필터 업데이트 구분 플래그
+  const autoUpdateRef = useRef(false);
+  // 복원(캐시 또는 location.state)로 인해 값이 셋팅되었음을 나타내는 플래그
+  const restoredRef = useRef(false);
+  // 최초 마운트 여부
+  const initialMountRef = useRef(true);
 
-  // 메인 검색박스 입력값
+  // 검색 관련 상태
   const [query, setQuery] = useState('');
-
-  // 기본 필터 상태 (검색 소스 다중 선택 포함)
-  const [filters, setFilters] = useState({
-    cond: '',
-    intr: '',
-    other_term: '',
-    journal: '',
-    sex: '',
-    age: '',
-    studyType: '',
-    sponsor: '',
-    location: '',
-    status: '',
-    sources: ["PM", "PMC", "CTG"]
-  });
-  // 페이지네이션 상태
+  const [filters, setFilters] = useState(defaultFilters());
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  // refined 관련 상태
   const [isRefined, setIsRefined] = useState(false);
   const [refinedQuery, setRefinedQuery] = useState(null);
-  // CTG 토큰 히스토리: { [page]: token }
   const [ctgTokenHistory, setCtgTokenHistory] = useState({});
-  // 검색 결과 및 로딩
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
-  // 검색 히스토리 및 선택된 결과
   const [searchHistory, setSearchHistory] = useState([]);
   const [selectedResult, setSelectedResult] = useState(null);
-  // 좌측/우측 사이드바 열림 여부 및 너비
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(true);
   const [rightSidebarOpen, setRightSidebarOpen] = useState(true);
   const [leftWidth, setLeftWidth] = useState(250);
   const [rightWidth, setRightWidth] = useState(500);
 
-  // 초기 마운트 여부 확인
-  const initialMountRef = useRef(true);
-
-  // 새로고침 시 URL 쿼리 제거
+  // URL 쿼리 제거 (최초 로드시)
   useEffect(() => {
     if (window.location.search) {
+      console.log('[Initial] Removing URL query parameters on first mount.');
       window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, []);
 
-  // URL 쿼리 파라미터 초기화 (페이지 로드시)
+  // 캐시 읽기 helper
+  const loadCache = () => {
+    const cacheString = sessionStorage.getItem(SESSION_KEY);
+    if (cacheString) {
+      try {
+        const parsed = JSON.parse(cacheString);
+        console.log('[Cache] Loaded cache:', parsed);
+        return parsed;
+      } catch (e) {
+        console.error('[Cache] Failed parsing cache:', e);
+        return null;
+      }
+    }
+    return null;
+  };
+
+  // 캐시 저장 helper
+  const saveCache = (cacheObj) => {
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(cacheObj));
+    console.log('[Cache] Saved cache:', cacheObj);
+  };
+
+  // 초기 상태 복원: location.state → 세션스토리지 → URL 쿼리 순서로 복원
   useEffect(() => {
-    setFilters({
-      cond: initialParams.cond || '',
-      intr: initialParams.intr || '',
-      other_term: initialParams.other_term || '',
-      journal: initialParams.journal || '',
-      sex: initialParams.sex || '',
-      age: initialParams.age || '',
-      studyType: initialParams.studyType || '',
-      sponsor: initialParams.sponsor || '',
-      location: initialParams.location || '',
-      status: initialParams.status || '',
-      sources: initialParams.sources ? JSON.parse(initialParams.sources) : ["PM", "PMC", "CTG"]
-    });
+    if (location.state && location.state.searchState) {
+      console.log('[Initial] Restoring state from location.state:', location.state.searchState);
+      cameFromDetailRef.current = true;
+      const state = location.state.searchState;
+      setFilters(state.filters);
+      setPage(state.page);
+      setPageSize(state.pageSize);
+      setSearchHistory(state.searchHistory || []);
+      setRefinedQuery(state.refinedQuery);
+      setCtgTokenHistory(state.ctgTokenHistory);
+      
+      saveCache({
+        filters: state.filters,
+        pageSize: state.pageSize,
+        searchHistory: state.searchHistory || [],
+        currentPage: state.page,
+        pageCache: {
+          [state.page]: {
+            results: state.results,
+            refinedQuery: state.refinedQuery,
+            ctgTokenHistory: state.ctgTokenHistory
+          }
+        }
+      });
+
+      const newParams = buildUrlParams({
+        ...state.filters,
+        page: state.page,
+        pageSize: state.pageSize,
+        refinedQuery: state.refinedQuery,
+        isRefined: state.refinedQuery ? "true" : "false"
+      });
+      console.log('[Initial] Setting URL parameters from location.state:', newParams);
+      setSearchParams(newParams);
+      navigate({ search: "?" + new URLSearchParams(newParams).toString() }, { replace: true });
+      
+      // 복원되었음을 표시
+      restoredRef.current = true;
+      return;
+    }
+
+    const cachedState = loadCache();
+    if (cachedState) {
+      console.log('[Initial] Restoring state from session cache.');
+      setFilters(cachedState.filters);
+      setPage(cachedState.currentPage);
+      setPageSize(cachedState.pageSize);
+      setSearchHistory(cachedState.searchHistory || []);
+      if (cachedState.pageCache && cachedState.pageCache[cachedState.currentPage]) {
+        const pageData = cachedState.pageCache[cachedState.currentPage];
+        setResults(pageData.results);
+        setRefinedQuery(pageData.refinedQuery);
+        setCtgTokenHistory(pageData.ctgTokenHistory);
+      }
+      const newParams = buildUrlParams({
+        ...cachedState.filters,
+        page: cachedState.currentPage,
+        pageSize: cachedState.pageSize,
+        refinedQuery: cachedState.pageCache && cachedState.pageCache[cachedState.currentPage]
+          ? cachedState.pageCache[cachedState.currentPage].refinedQuery
+          : undefined,
+        isRefined: cachedState.pageCache && cachedState.pageCache[cachedState.currentPage] && cachedState.pageCache[cachedState.currentPage].refinedQuery
+          ? "true"
+          : "false"
+      });
+      console.log('[Initial] Setting URL parameters from cache:', newParams);
+      setSearchParams(newParams);
+      navigate({ search: "?" + new URLSearchParams(newParams).toString() }, { replace: true });
+      
+      restoredRef.current = true;
+      return;
+    }
+
+    // 최초 진입 (캐시나 location.state가 없을 경우)
+    console.log('[Initial] First entry with URL params:', initialParams);
+    setFilters(createFilters(initialParams));
     setPage(Number(initialParams.page) || 1);
     setPageSize(Number(initialParams.pageSize) || 10);
     setIsRefined(initialParams.isRefined === 'true');
     setRefinedQuery(initialParams.refinedQuery ? JSON.parse(initialParams.refinedQuery) : null);
-    setCtgTokenHistory(initialParams.ctgTokenHistory ? JSON.parse(initialParams.ctgTokenHistory) : {});
-    
+
     if (initialParams.cond || initialParams.intr || initialParams.other_term) {
+      console.log('[Initial] Auto-triggering search on first entry.');
       handleSearch({
-        cond: initialParams.cond || '',
-        intr: initialParams.intr || '',
-        other_term: initialParams.other_term || '',
-        journal: initialParams.journal || '',
-        sex: initialParams.sex || '',
-        age: initialParams.age || '',
-        studyType: initialParams.studyType || '',
-        sponsor: initialParams.sponsor || '',
-        location: initialParams.location || '',
-        status: initialParams.status || '',
-        sources: initialParams.sources ? JSON.parse(initialParams.sources) : ["PM", "PMC", "CTG"],
+        ...createFilters(initialParams),
         page: Number(initialParams.page) || 1,
         pageSize: Number(initialParams.pageSize) || 10,
         isRefined: initialParams.isRefined === 'true',
         refinedQuery: initialParams.refinedQuery ? JSON.parse(initialParams.refinedQuery) : null,
-        ctgPageToken: initialParams.ctgTokenHistory 
-          ? JSON.parse(initialParams.ctgTokenHistory)[Number(initialParams.page)] || null 
+        ctgPageToken: initialParams.ctgTokenHistory
+          ? JSON.parse(initialParams.ctgTokenHistory)[Number(initialParams.page)] || null
           : null
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 필터 변경 시 refined 상태 및 CTG 토큰 히스토리 초기화 (초기 마운트 제외)
+  // 필터 변경 감지 (자동 업데이트 및 복원 상태 구분)
   const sourcesString = JSON.stringify(filters.sources);
+  const prevFiltersRef = useRef(filters);
+
   useEffect(() => {
-    if (initialMountRef.current) {
-      initialMountRef.current = false;
+    // 백엔드 자동 업데이트에 의한 변경인 경우 무시
+    if (autoUpdateRef.current) {
+      console.log('[Filters] Skipping reset due to automatic backend update.');
+      autoUpdateRef.current = false;
+      prevFiltersRef.current = filters;
       return;
     }
+
+    // 복원에 의한 업데이트라면 reset 로직 건너뛰기
+    if (restoredRef.current) {
+      console.log('[Filters] Skipping effect due to restoration of state.');
+      prevFiltersRef.current = filters;
+      restoredRef.current = false;
+      return;
+    }
+
+    // 최초 마운트일 경우에도 변경 감지에서 제외
+    if (initialMountRef.current) {
+      initialMountRef.current = false;
+      console.log('[Filters] Initial mount completed.');
+      prevFiltersRef.current = filters;
+      return;
+    }
+
+    console.log('[Filters] Filters changed:', filters);
+
+    const prevFilters = prevFiltersRef.current;
+    console.log('[Filters] Previous filters:', prevFilters);
+    console.log('[Filters] Current filters:', filters);
+
+    const changedKeys = Object.keys(filters).filter((key) => {
+      if (key === 'refinedQuery') {
+        return !_isEqual(filters[key], prevFilters[key]);
+      }
+      return filters[key] !== prevFilters[key];
+    });
+    console.log('[Filters] Changed keys:', changedKeys);
+
+    prevFiltersRef.current = filters;
+
+    if (cameFromDetailRef.current) {
+      console.log('[Filters] Skipping page reset due to return from detail page.');
+      cameFromDetailRef.current = false;
+      return;
+    }
+
+    if (
+      changedKeys.length === 0 ||
+      (changedKeys.length <= 3 && changedKeys.every((key) => ['page', 'refinedQuery', 'ctgPageToken'].includes(key)))
+    ) {
+      console.log('[Filters] Only page, refinedQuery, or ctgPageToken changed (or no changes), skipping reset.');
+      return;
+    }
+
+    console.log('[Filters] Resetting page, refined query, and CTG token history due to manual filter change.');
     setIsRefined(false);
     setRefinedQuery(null);
     setPage(1);
     setCtgTokenHistory({});
-  }, [
-    filters.cond,
-    filters.intr,
-    filters.other_term,
-    filters.journal,
-    filters.sex,
-    filters.age,
-    filters.studyType,
-    filters.sponsor,
-    filters.location,
-    filters.status,
-    sourcesString
-  ]);
+  }, [filters, sourcesString]);
 
+  // 디테일 페이지 이동 전 캐시 업데이트 및 상태 저장
   const handleViewDetails = (item) => {
+    console.log('[Detail] View details for item:', item);
+    const stateToPass = {
+      filters,
+      results,
+      page,
+      pageSize,
+      refinedQuery,
+      ctgTokenHistory,
+      searchHistory
+    };
+    const cached = loadCache() || { pageCache: {} };
+    cached.filters = filters;
+    cached.pageSize = pageSize;
+    cached.searchHistory = searchHistory;
+    cached.currentPage = page;
+    cached.pageCache = cached.pageCache || {};
+    cached.pageCache[page] = { results, refinedQuery, ctgTokenHistory };
+    saveCache(cached);
+    console.log('[Detail] Navigating to detail page with state:', stateToPass);
     if (item.source === "CTG") {
-      navigate(
-        `/detail?nctId=${item.id}&source=CTG`,
-        { state: { searchState: { filters, results, page, pageSize, refinedQuery, ctgTokenHistory } } }
-      );
+      navigate(`/detail?nctId=${item.id}&source=CTG`, { state: { searchState: stateToPass } });
     } else {
-      navigate(
-        `/detail?paperId=${item.id}&pmcid=${item.pmcid}&source=${item.source}`,
-        { state: { searchState: { filters, results, page, pageSize, refinedQuery, ctgTokenHistory } } }
-      );
+      navigate(`/detail?paperId=${item.id}&pmcid=${item.pmcid}&source=${item.source}`, { state: { searchState: stateToPass } });
     }
   };
 
+  // 필터 객체에서 빈 값(null, undefined, '') 제거 helper
+  const preparePayload = (filtersObj) => {
+    return Object.entries(filtersObj).reduce((acc, [key, value]) => {
+      if (value === undefined || value === null || value === '') {
+        return acc;
+      }
+      acc[key] = value;
+      return acc;
+    }, {});
+  };
+
+  // 검색 API 호출 및 캐시 업데이트 (refinedQuery 적용)
   const handleSearch = async (customParams = null) => {
-    let effectiveFilters;
+    console.log('[Search] handleSearch called with params:', customParams);
+    let rawFilters;
     if (!customParams) {
-      const newFilters = { ...filters };
-      setFilters(newFilters);
-      setPage(1);
-      setCtgTokenHistory({});
-      setIsRefined(false);
-      setRefinedQuery(null);
-      // Include the main search query in the payload
-      customParams = { ...newFilters, user_query: query, page: 1, pageSize, ctgPageToken: null };
-      setSearchHistory([customParams, ...searchHistory]);
-      effectiveFilters = customParams;
+      rawFilters = { ...filters, user_query: query, page: 1, pageSize, ctgPageToken: null };
+      console.log('[Search] Using current filters with query:', rawFilters);
+      setSearchHistory([rawFilters, ...searchHistory]);
     } else {
-      effectiveFilters = customParams;
+      rawFilters = customParams;
     }
-  
-    // 6. Build a query object for the URL using refined and advanced filter fields.
-    const newParams = {};
-    if (effectiveFilters.cond) newParams.cond = effectiveFilters.cond;
-    if (effectiveFilters.intr) newParams.intr = effectiveFilters.intr;
-    if (effectiveFilters.other_term) newParams.other_term = effectiveFilters.other_term;
-    if (filters.journal) newParams.journal = filters.journal;
-    if (filters.sex) newParams.sex = filters.sex;
-    if (filters.age) newParams.age = filters.age;
-    if (filters.studyType) newParams.studyType = filters.studyType;
-    if (filters.sponsor) newParams.sponsor = filters.sponsor;
-    if (filters.location) newParams.location = filters.location;
-    if (filters.status) newParams.status = filters.status;
-  
-    newParams.page = effectiveFilters.page;
-    newParams.pageSize = effectiveFilters.pageSize;
-    if (effectiveFilters.sources) {
-      newParams.sources = JSON.stringify(effectiveFilters.sources);
-    }
-    newParams.ctgPageToken = effectiveFilters.ctgPageToken ?? "null";
-    if (effectiveFilters.refinedQuery) {
-      newParams.refinedQuery = JSON.stringify(effectiveFilters.refinedQuery);
-    }
-    newParams.isRefined = effectiveFilters.isRefined === true ? "true" : "false";
-  
-    // Update the URL with these parameters
-    setSearchParams(newParams);
-    navigate({ search: "?" + new URLSearchParams(newParams).toString() });
-  
+    const effectiveFilters = preparePayload(rawFilters);
+    console.log('[Search] Prepared effective filters for API:', effectiveFilters);
     setLoading(true);
     try {
-      const requestFilters = { ...effectiveFilters, ctgPageToken: ctgTokenHistory[effectiveFilters.page] || null };
-      const data = await searchClinicalTrials(requestFilters);
-      setResults(data.results);
+      effectiveFilters.ctgPageToken = ctgTokenHistory[effectiveFilters.page] || null;
+      const data = await searchClinicalTrials(effectiveFilters);
+      console.log('[Search] API response:', data);
+      const updatedFilters = { ...rawFilters };
       if (data.refinedQuery) {
-        effectiveFilters.cond = data.refinedQuery.cond || effectiveFilters.cond;
-        effectiveFilters.intr = data.refinedQuery.intr || effectiveFilters.intr;
-        effectiveFilters.other_term = data.refinedQuery.other_term || effectiveFilters.other_term;
+        console.log('[Search] Applying refinedQuery from API:', data.refinedQuery);
+        updatedFilters.cond = data.refinedQuery.cond || updatedFilters.cond;
+        updatedFilters.intr = data.refinedQuery.intr || updatedFilters.intr;
+        updatedFilters.other_term = data.refinedQuery.other_term || updatedFilters.other_term;
+        updatedFilters.refinedQuery = data.refinedQuery;
+        updatedFilters.isRefined = true;
+        autoUpdateRef.current = true;
         setRefinedQuery(data.refinedQuery);
         setIsRefined(true);
+        setFilters(updatedFilters);
       }
+      setResults(data.results);
       if (data.results?.ctg?.nextPageToken) {
-        setCtgTokenHistory(prev => ({ ...prev, [effectiveFilters.page + 1]: data.results.ctg.nextPageToken }));
+        setCtgTokenHistory(prev => ({
+          ...prev,
+          [updatedFilters.page + 1]: data.results.ctg.nextPageToken
+        }));
+        console.log('[Search] Updated CTG token history:', ctgTokenHistory);
       }
-  
-      // Save the search state in sessionStorage for later restoration
-      const stateToSave = {
-        filters,
+      const newParams = buildUrlParams({
+        ...updatedFilters,
+        page: updatedFilters.page,
+        pageSize: updatedFilters.pageSize,
+        refinedQuery: updatedFilters.refinedQuery,
+        isRefined: updatedFilters.isRefined ? "true" : "false"
+      });
+      console.log('[Search] Updating URL and cache with newParams:', newParams);
+      setSearchParams(newParams);
+      navigate({ search: "?" + new URLSearchParams(newParams).toString() }, { replace: true });
+      
+      const cached = loadCache() || {};
+      cached.filters = updatedFilters;
+      cached.pageSize = updatedFilters.pageSize;
+      cached.searchHistory = [updatedFilters, ...searchHistory];
+      cached.currentPage = updatedFilters.page;
+      cached.pageCache = cached.pageCache || {};
+      cached.pageCache[updatedFilters.page] = {
         results: data.results,
-        page: effectiveFilters.page,
-        pageSize: effectiveFilters.pageSize,
-        refinedQuery: data.refinedQuery,
-        ctgTokenHistory
+        refinedQuery: updatedFilters.refinedQuery,
+        ctgTokenHistory: ctgTokenHistory
       };
-      sessionStorage.setItem("searchState", JSON.stringify(stateToSave));
+      saveCache(cached);
+      console.log('[Search] Search completed, current page:', updatedFilters.page);
     } catch (error) {
-      console.error("Error during search:", error);
+      console.error('[Search] Error during search:', error);
       setResults(null);
     } finally {
       setLoading(false);
     }
   };
-  
+
+  // 페이지 전환: 캐시가 있으면 사용하고, 없으면 API 호출
+  const goToPage = (newPage) => {
+    console.log('[Pagination] goToPage called. Current page:', page, 'New page:', newPage);
+    const cached = loadCache();
+    if (cached && cached.pageCache && cached.pageCache[newPage]) {
+      const pageData = cached.pageCache[newPage];
+      console.log('[Pagination] Found cached data for page', newPage, ':', pageData);
+      setPage(newPage);
+      setResults(pageData.results);
+      setRefinedQuery(pageData.refinedQuery);
+      setCtgTokenHistory(pageData.ctgTokenHistory);
+      const newParams = buildUrlParams({
+        ...cached.filters,
+        page: newPage,
+        pageSize: cached.pageSize,
+        refinedQuery: pageData.refinedQuery,
+        isRefined: pageData.refinedQuery ? "true" : "false"
+      });
+      console.log('[Pagination] Updating URL for cached page change:', newParams);
+      setSearchParams(newParams);
+      navigate({ search: "?" + new URLSearchParams(newParams).toString() }, { replace: true });
+      return;
+    }
+    console.log('[Pagination] No cache for page', newPage, '- triggering search.');
+    setPage(newPage);
+    handleSearch({
+      ...filters,
+      page: newPage,
+      pageSize,
+      isRefined,
+      refinedQuery,
+      ctgPageToken: ctgTokenHistory[newPage] || null
+    });
+  };
+
+  // 검색 이력 선택 시 상태 복원 후 검색 실행
   const handleHistorySelect = (historyItem) => {
+    console.log('[History] Selected history item:', historyItem);
     setFilters(historyItem);
     setPage(historyItem.page || 1);
     if (historyItem.ctgTokenHistory) {
@@ -247,68 +439,65 @@ const SearchPage = () => {
     }
     handleSearch(historyItem);
   };
-  
+
+  // 결과 항목 선택 시 처리
   const handleResultSelect = (result) => {
+    console.log('[Result] Selected result:', result);
     setSelectedResult(result);
   };
-  
-  const goToPage = (newPage) => {
-    setPage(newPage);
-    handleSearch({ ...filters, page: newPage, pageSize, isRefined, refinedQuery, ctgPageToken: ctgTokenHistory[newPage] || null });
-  };
-  
+
+  // 왼쪽 사이드바 리사이징
   const onLeftResizerMouseDown = (e) => {
     e.preventDefault();
     const startX = e.clientX;
     const startWidth = leftWidth;
+    console.log('[Resizer] Left sidebar resize started at', startX, 'with initial width:', startWidth);
     const onMouseMove = (eMove) => {
       const newWidth = startWidth + (eMove.clientX - startX);
       if (newWidth > 100 && newWidth < 500) {
+        console.log('[Resizer] Left sidebar resizing: new width:', newWidth);
         setLeftWidth(newWidth);
       }
     };
     const onMouseUp = () => {
+      console.log('[Resizer] Left sidebar resize ended.');
       window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("mouseup", onMouseUp);
     };
     window.addEventListener("mousemove", onMouseMove);
     window.addEventListener("mouseup", onMouseUp);
   };
-  
+
+  // 오른쪽 사이드바 리사이징
   const onRightResizerMouseDown = (e) => {
     e.preventDefault();
     const startX = e.clientX;
     const startWidth = rightWidth;
+    console.log('[Resizer] Right sidebar resize started at', startX, 'with initial width:', startWidth);
     const onMouseMove = (eMove) => {
       const newWidth = startWidth + (startX - eMove.clientX);
       if (newWidth > 100 && newWidth < 500) {
+        console.log('[Resizer] Right sidebar resizing: new width:', newWidth);
         setRightWidth(newWidth);
       }
     };
     const onMouseUp = () => {
+      console.log('[Resizer] Right sidebar resize ended.');
       window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("mouseup", onMouseUp);
     };
     window.addEventListener("mousemove", onMouseMove);
     window.addEventListener("mouseup", onMouseUp);
   };
-  
+
+  // 총 페이지 수 (예시: PubMed 결과 기준)
   const totalPages = results && results.pm ? Math.ceil(results.pm.total / pageSize) : 1;
-  
+  console.log('[Pagination] Calculated total pages:', totalPages);
+
+  // 로고 클릭 시 전체 초기화
   const handleLogoClick = () => {
-    setFilters({
-      cond: '',
-      intr: '',
-      other_term: '',
-      journal: '',
-      sex: '',
-      age: '',
-      studyType: '',
-      sponsor: '',
-      location: '',
-      status: '',
-      sources: ["PM", "PMC", "CTG"]
-    });
+    console.log('[Logo] Clicked logo. Resetting all states to initial values.');
+    setFilters(defaultFilters());
     setQuery('');
     setPage(1);
     setPageSize(10);
@@ -317,18 +506,24 @@ const SearchPage = () => {
     setCtgTokenHistory({});
     setSearchHistory([]);
     setResults(null);
+    sessionStorage.removeItem(SESSION_KEY);
+    console.log('[Logo] State reset complete. Reloading page and navigating to root.');
     navigate('/');
     window.location.reload();
   };
-  
+
   return (
     <div className="flex min-h-screen">
+      {/* 왼쪽 검색 이력 사이드바 */}
       <div className="flex flex-col">
         <SearchHistorySidebar 
           history={searchHistory}
           onSelect={handleHistorySelect}
           isOpen={leftSidebarOpen}
-          toggleSidebar={() => setLeftSidebarOpen(!leftSidebarOpen)}
+          toggleSidebar={() => {
+            console.log('[Sidebar] Toggling left sidebar from', leftSidebarOpen, 'to', !leftSidebarOpen);
+            setLeftSidebarOpen(!leftSidebarOpen);
+          }}
           sidebarWidth={leftWidth}
         />
         {leftSidebarOpen && (
@@ -338,12 +533,27 @@ const SearchPage = () => {
           />
         )}
       </div>
+
+      {/* 메인 컨텐츠 영역 */}
       <div className="flex-grow p-4">
         <div className="mb-4 cursor-pointer" onClick={handleLogoClick}>
           <h1 className="text-4xl font-bold text-center">Clinical Trials Hub</h1>
         </div>
-        <SearchBar query={query} setQuery={setQuery} onSubmit={() => handleSearch()} />
+
+        {/* 검색 바 */}
+        <SearchBar 
+          query={query} 
+          setQuery={setQuery} 
+          onSubmit={() => {
+            console.log('[SearchBar] Submitting search with query:', query);
+            handleSearch();
+          }} 
+        />
+
+        {/* 필터 패널 */}
         <FilterPanel filters={filters} setFilters={setFilters} />
+
+        {/* 검색 결과 영역 */}
         {loading ? (
           <div className="text-center mt-6">Loading...</div>
         ) : (
@@ -353,19 +563,29 @@ const SearchPage = () => {
             onViewDetails={handleViewDetails}
           />
         )}
+
+        {/* 페이지 네비게이션 버튼 */}
         {results && results.pm && (
           <div className="flex justify-center mt-4 space-x-4">
             <button
               disabled={page === 1}
-              onClick={() => goToPage(page - 1)}
+              onClick={() => {
+                console.log('[Pagination] Previous button clicked.');
+                goToPage(page - 1);
+              }}
               className="px-4 py-2 bg-blue-500 text-white rounded disabled:opacity-50"
             >
               Previous
             </button>
-            <span className="self-center">Page {page} of {totalPages}</span>
+            <span className="self-center">
+              Page {page} of {totalPages}
+            </span>
             <button
               disabled={page === totalPages}
-              onClick={() => goToPage(page + 1)}
+              onClick={() => {
+                console.log('[Pagination] Next button clicked.');
+                goToPage(page + 1);
+              }}
               className="px-4 py-2 bg-blue-500 text-white rounded disabled:opacity-50"
             >
               Next
@@ -373,6 +593,8 @@ const SearchPage = () => {
           </div>
         )}
       </div>
+
+      {/* 오른쪽 상세보기 사이드바 */}
       {rightSidebarOpen && (
         <div
           onMouseDown={onRightResizerMouseDown}
@@ -382,7 +604,10 @@ const SearchPage = () => {
       <DetailSidebar 
         selectedResult={selectedResult}
         isOpen={rightSidebarOpen}
-        toggleSidebar={() => setRightSidebarOpen(!rightSidebarOpen)}
+        toggleSidebar={() => {
+          console.log('[Sidebar] Toggling right sidebar from', rightSidebarOpen, 'to', !rightSidebarOpen);
+          setRightSidebarOpen(!rightSidebarOpen);
+        }}
         sidebarWidth={rightWidth}
       />
     </div>
