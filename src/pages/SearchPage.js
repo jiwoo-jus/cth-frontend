@@ -282,33 +282,64 @@ const SearchPage = () => {
     setCtgTokenHistory({});
   }, [filters, sourcesString]);
 
-  // 디테일 페이지 이동 전 캐시 업데이트 및 상태 저장
-  const handleViewDetails = (item) => {
-    console.log('[Detail] View details for item:', item);
-    const stateToPass = {
-      filters,
-      results,
-      page,
-      pageSize,
-      refinedQuery,
-      ctgTokenHistory,
-      searchHistory
-    };
-    const cached = loadCache() || { pageCache: {} };
-    cached.filters = filters;
-    cached.pageSize = pageSize;
-    cached.searchHistory = searchHistory;
-    cached.currentPage = page;
-    cached.pageCache = cached.pageCache || {};
-    cached.pageCache[page] = { results, refinedQuery, ctgTokenHistory };
-    saveCache(cached);
-    console.log('[Detail] Navigating to detail page with state:', stateToPass);
-    if (item.source === "CTG") {
-      navigate(`/detail?nctId=${item.id}&source=CTG`, { state: { searchState: stateToPass } });
-    } else {
-      navigate(`/detail?paperId=${item.id}&pmcid=${item.pmcid}&source=${item.source}`, { state: { searchState: stateToPass } });
-    }
+  // src/pages/SearchPage.js
+const handleViewDetails = (item) => {
+  console.log('[Detail] View details for item:', item);
+
+  // 기존에 searchState 관련해서 넘기던 것
+  const stateToPass = {
+    filters,
+    results,
+    page,
+    pageSize,
+    refinedQuery,
+    ctgTokenHistory,
+    searchHistory
   };
+
+  // 메타데이터를 따로 뽑아서 detail 페이지로 넘겨줄 수 있음
+  // item 안에 있는 title, pmid, pmcid, authors, pubDate 등 필요한 값들 추출
+  const metadata = {
+    title: item.title,
+    pmid: item.pmid || null,
+    pmcid: item.pmcid || null,
+    nctId: item.nctId || null,
+    doi: item.doi || null,
+    studyType: item.studyType || null,
+    authors: item.authors || [],
+    journal: item.journal || null,
+    pubDate: item.pubDate || item.date || null,
+    // ... 추가로 필요한 것들 (journal명 등)
+  };
+
+  // sessionStorage 캐시 업데이트 등 기존 로직
+  const cached = loadCache() || { pageCache: {} };
+  cached.filters = filters;
+  cached.pageSize = pageSize;
+  cached.searchHistory = searchHistory;
+  cached.currentPage = page;
+  cached.pageCache[page] = { results, refinedQuery, ctgTokenHistory };
+  saveCache(cached);
+
+  // source에 따라 쿼리 파라미터도 설정
+  if (item.source === 'CTG') {
+    navigate(`/detail?nctId=${item.id}&source=CTG`, {
+      state: {
+        searchState: stateToPass,
+        metadata: metadata,  // detail 페이지에서 쓸 데이터
+      },
+    });
+  } else {
+    // PM or PMC
+    navigate(`/detail?paperId=${item.id}&pmcid=${item.pmcid}&source=${item.source}`, {
+      state: {
+        searchState: stateToPass,
+        metadata: metadata,  // detail 페이지에서 쓸 데이터
+      },
+    });
+  }
+};
+
 
   // 필터 객체에서 빈 값(null, undefined, '') 제거 helper
   const preparePayload = (filtersObj) => {

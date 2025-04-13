@@ -15,6 +15,18 @@ const DetailPage = () => {
   const navigate = useNavigate();
   const { paperId, pmcid, nctId, source } = queryString.parse(location.search);
 
+  // 상단 메타데이터는 SearchResults에서 넘겨준 객체를 사용 (없으면 기본값 사용)
+  const metadata = location.state?.metadata || {
+    title: 'No Title Available',
+    pmid: paperId || '',
+    pmcid: pmcid || '',
+    nctId: nctId || '',
+    doi: '',
+    studyType: '',
+    authors: [],
+    pubDate: '',
+  };
+
   const [structuredInfo, setStructuredInfo] = useState(null);
   const [fullText, setFullText] = useState('');
   const [fullTextExpanded, setFullTextExpanded] = useState(false);
@@ -120,6 +132,54 @@ const DetailPage = () => {
           Back
         </button>
       </header>
+
+      {/* 상단 메타데이터 영역 (PubMed/PMC) */}
+      {(source === 'PM' || source === 'PMC') && (
+        <div className="bg-gray-50 border border-gray-200 p-4 rounded mb-6 shadow-sm">
+          <h2 className="text-xl font-bold text-gray-800">{metadata.title}</h2>
+          <div className="mt-4 space-y-2 text-base text-gray-700">
+            {/* 첫 행: pubDate, studyType */}
+            <div className="flex flex-wrap justify-between">
+              {metadata.studyType && (
+                <p className="mr-4">
+                  <span className="font-bold">Study Type:</span> {metadata.studyType}
+                </p>
+              )}
+              {metadata.pubDate && (
+                <p className="mr-4">
+                  <span>{metadata.journal}</span> {metadata.pubDate} {metadata.doi}
+                </p>
+              )}
+            </div>
+
+            {/* 두 번째 행: pmid, pmcid, nctid, doi */}
+            <div className="flex flex-wrap gap-4">
+              {metadata.pmid && (
+                <p>
+                  <span>PMID:</span> {metadata.pmid}
+                </p>
+              )}
+              {metadata.pmcid && (
+                <p>
+                  <span>PMCID:</span> {metadata.pmcid}
+                </p>
+              )}
+              {metadata.nctId && (
+                <p>
+                  <span>NCT ID:</span> {metadata.nctId}
+                </p>
+              )}
+            </div>
+
+            {/* 마지막 행: authors */}
+            {metadata.authors && metadata.authors.length > 0 && (
+              <div>
+                <p>{metadata.authors.join(', ')}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
         <div style={{ flex: 3, border: '1px solid #ccc', padding: '1rem' }}>
@@ -245,7 +305,7 @@ const DetailPage = () => {
                 onClick={() => setFullTextExpanded(prev => !prev)}
               >
                 {fullTextExpanded ? 'Collapse' : 'Expand'}
-                <span style={{ fontSize: '1rem' }}>{fullTextExpanded ? '▲' : '▼'}</span> {/* Add chevron icon */}
+                <span style={{ fontSize: '1rem' }}>{fullTextExpanded ? '▲' : '▼'}</span>
               </button>
             </div>
             {fullTextExpanded && (
