@@ -92,7 +92,7 @@ const SearchPage = () => {
   const [searchHistory, setSearchHistory] = useState([]);
   const [selectedResult, setSelectedResult] = useState(null);
   const [rightSidebarOpen, setRightSidebarOpen] = useState(true);
-  const [rightWidth, setRightWidth] = useState(750);
+  const [rightWidth, setRightWidth] = useState(1000);
 
   // URL 쿼리 제거 (최초 로드시)
   useEffect(() => {
@@ -466,7 +466,7 @@ const handleViewDetails = (item) => {
     console.log('[Resizer] Right sidebar resize started at', startX, 'with initial width:', startWidth);
     const onMouseMove = (eMove) => {
       const newWidth = startWidth + (startX - eMove.clientX);
-      if (newWidth > 100 && newWidth < 500) {
+      if (newWidth > 300 && newWidth < 1000) {
         console.log('[Resizer] Right sidebar resizing: new width:', newWidth);
         setRightWidth(newWidth);
       }

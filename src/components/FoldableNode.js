@@ -32,10 +32,12 @@ const FoldableNode = ({
     setExpanded(!expanded);
   };
 
-  // 들여쓰기 (depth*16 px)
+  // 들여쓰기 (depth*12px)와 폰트 사이즈 축소
   const indentStyle = {
-    marginLeft: depth * 16,
-    padding: '4px 0',
+    marginLeft: depth * 12, // 16px에서 12px로 줄임
+    padding: '3px 0', // 4px에서 2px로 줄임
+    fontSize: '0.875rem', // text-sm에 해당하는 크기
+    lineHeight: '1.25rem',
   };
 
   // 객체 또는 배열
@@ -50,11 +52,11 @@ const FoldableNode = ({
               onClick={toggleExpand}
               style={{ cursor: 'pointer', fontWeight: 'bold' }}
             >
-              <span style={{ color: '#00509E' }}>{expanded ? '▼' : '▶'}</span> {nodeKey}
+              <span style={{ color: '#000000', fontSize: '0.75rem' }}>{expanded ? '▼' : '▶'}</span> {nodeKey}
             </div>
           )}
           {expanded && (
-            <div style={{ marginLeft: (nodeKey && !isArrayItem) ? 16 : 0 }}>
+            <div style={{ marginLeft: (nodeKey && !isArrayItem) ? 12 : 0 }}> {/* 16px에서 12px로 줄임 */}
               {data.map((el, idx) => (
                 <FoldableNode
                   key={idx}
@@ -81,11 +83,11 @@ const FoldableNode = ({
               onClick={toggleExpand}
               style={{ cursor: 'pointer', fontWeight: 'bold' }}
             >
-              <span style={{ color: '#00509E' }}>{expanded ? '▼' : '▶'}</span> {nodeKey}
+              <span style={{ color: '#000000', fontSize: '0.75rem' }}>{expanded ? '▼' : '▶'}</span> {nodeKey}
             </div>
           )}
           {expanded && (
-            <div style={{ marginLeft: nodeKey ? 16 : 0 }}>
+            <div style={{ marginLeft: nodeKey ? 12 : 0 }}> {/* 16px에서 12px로 줄임 */}
               {entries.map(([key, value]) => (
                 <FoldableNode
                   key={key}
@@ -107,7 +109,14 @@ const FoldableNode = ({
         {isArrayItem ? (
           // 배열 항목일 때는 불렛포인트로 표시
           <>
-            <span style={{ color: '#666', marginRight: '8px' }}>•</span>
+            <span style={{ 
+              color: '#000000', 
+              marginRight: '6px',
+              fontSize: '0.4rem',  // 불렛포인트 크기 증가
+              fontWeight: 'bold' // 더 두껍게 표시
+            }}>
+              ●
+            </span>
             {nodeKey !== String(arrayIndex) && (
               <>
                 <strong>{nodeKey}:</strong>{' '}

@@ -1,6 +1,6 @@
-// src/components/ChatBot.js
 import PropTypes from 'prop-types';
 import React, { useState } from 'react';
+
 import api from '../api';
 
 function copyToClipboard(text) {
@@ -12,13 +12,12 @@ function copyToClipboard(text) {
 const ChatMessage = ({ message, onToggle, onEvidenceClick }) => {
   const handleCopyAll = () => {
     const allText = `Q: ${message.question}\nA: ${message.answer}${
-      message.evidence?.length ? `\nEvidence:\n${message.evidence.join('\n')}` : ''
-    }`;
+      message.evidence?.length ? `\nEvidence:\n${message.evidence.join('\n')}` : ''}`;
     copyToClipboard(allText);
   };
 
   return (
-    <div className="mb-4 border border-gray-300 rounded p-3">
+    <div className="mb-3 border border-gray-300 rounded p-3 text-sm">
       {/* Question */}
       <div className="flex items-start gap-2 mb-2">
         <strong>Q:</strong>
@@ -35,32 +34,19 @@ const ChatMessage = ({ message, onToggle, onEvidenceClick }) => {
 
           {/* Evidence */}
           {message.evidence?.length > 0 && (
-            <div>
-              <strong>Evidence:</strong>
-              <ul className="pl-5 list-disc mt-1">
+            <div className="mb-2">
+              <strong className="block mb-1">Evidence:</strong>
+              <ul className="list-none space-y-2 pl-0">
                 {message.evidence.map((evi, idx) => (
-                  <li
-                    key={idx}
-                    className="whitespace-pre-wrap mb-1 flex items-start gap-2"
-                    style={{
-                      borderBottom: '1px solid #eee', // Subtle bottom border
-                      paddingBottom: '0.5rem',
-                      marginBottom: '0.5rem',
-                    }}
-                  >
+                  <li key={idx} className="flex items-start gap-2">
                     <button
-                      style={{
-                        backgroundColor: 'transparent',
-                        border: 'none',
-                        cursor: 'pointer',
-                        fontSize: '1rem', // Keep the emoji size consistent
-                        alignSelf: 'flex-start', // Align to the top
-                      }}
+                      className="text-gray-700 hover:text-blue-700 text-xs mt-0.5"
                       onClick={() => onEvidenceClick(evi)}
+                      title="Highlight in full text"
                     >
                       🔍
                     </button>
-                    <span className="flex-1">{evi}</span>
+                    <span className="whitespace-pre-wrap leading-snug text-sm">{evi}</span>
                   </li>
                 ))}
               </ul>
@@ -72,47 +58,16 @@ const ChatMessage = ({ message, onToggle, onEvidenceClick }) => {
       )}
 
       {/* Buttons */}
-      <div className="flex flex-wrap gap-2 mt-3">
+      <div className="flex flex-wrap gap-2 mt-3 text-xs">
         <button
           onClick={onToggle}
-          style={{
-            backgroundColor: 'transparent',
-            color: '#00509E',
-            border: '1px solid #00509E',
-            padding: '0.3rem 0.6rem',
-            cursor: 'pointer',
-            borderRadius: '4px',
-            fontSize: '0.9rem',
-            fontWeight: 'bold',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.3rem',
-            transition: 'background 0.3s ease, color 0.3s ease',
-          }}
-          onMouseEnter={(e) => {
-            e.target.style.backgroundColor = '#00509E';
-            e.target.style.color = '#fff';
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.backgroundColor = 'transparent';
-            e.target.style.color = '#00509E';
-          }}
+          className="px-2 py-1 border border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white rounded transition-colors font-medium"
         >
-          {message.expanded ? 'Collapse' : 'Expand'}
-          <span style={{ fontSize: '0.8rem' }}>{message.expanded ? '▲' : '▼'}</span>
+          {message.expanded ? 'Collapse ▲' : 'Expand ▼'}
         </button>
         <button
           onClick={handleCopyAll}
-          style={{
-            backgroundColor: 'transparent',
-            color: '#aaa',
-            border: 'none',
-            cursor: 'pointer',
-            fontSize: '0.9rem',
-            transition: 'color 0.3s ease',
-          }}
-          onMouseEnter={(e) => (e.target.style.color = '#000')}
-          onMouseLeave={(e) => (e.target.style.color = '#aaa')}
+          className="text-gray-500 hover:text-black transition-colors"
         >
           Copy
         </button>
@@ -124,12 +79,11 @@ const ChatMessage = ({ message, onToggle, onEvidenceClick }) => {
 const ChatBot = ({ paperId, data, onResponse, onEvidenceClick }) => {
   const [question, setQuestion] = useState('');
   const [conversation, setConversation] = useState([]);
-  const [loading, setLoading] = useState(false); // Add loading state
+  const [loading, setLoading] = useState(false);
 
   const handleAsk = async () => {
-    if (!question.trim() || loading) return; // Prevent multiple requests
-
-    setLoading(true); // Set loading to true
+    if (!question.trim() || loading) return;
+    setLoading(true);
     try {
       const payload = data
         ? { content: data, userQuestion: question }
@@ -149,9 +103,8 @@ const ChatBot = ({ paperId, data, onResponse, onEvidenceClick }) => {
       if (onResponse) onResponse(response.data);
     } catch (error) {
       console.error('Chat error:', error);
-      // Optionally display an error message to the user
     } finally {
-      setLoading(false); // Set loading to false after request finishes
+      setLoading(false);
     }
   };
 
@@ -164,7 +117,7 @@ const ChatBot = ({ paperId, data, onResponse, onEvidenceClick }) => {
   };
 
   return (
-    <div>
+    <div className="text-sm">
       <div>
         {conversation.map((msg, index) => (
           <ChatMessage
@@ -175,11 +128,8 @@ const ChatBot = ({ paperId, data, onResponse, onEvidenceClick }) => {
           />
         ))}
       </div>
-      {/* Display loading indicator below conversation */}
       {loading && (
-        <div style={{ textAlign: 'center', padding: '1rem', color: '#666' }}>
-          Loading response...
-        </div>
+        <div className="text-center py-4 text-gray-500 text-sm">Loading response...</div>
       )}
       <div className="flex gap-2 mt-4">
         <input
@@ -187,27 +137,18 @@ const ChatBot = ({ paperId, data, onResponse, onEvidenceClick }) => {
           placeholder="Ask a question about this paper..."
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
-          onKeyPress={(e) => e.key === 'Enter' && handleAsk()} // Optional: Allow Enter key to submit
-          disabled={loading} // Disable input while loading
-          className="flex-1 border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          onKeyPress={(e) => e.key === 'Enter' && handleAsk()}
+          disabled={loading}
+          className="flex-1 border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <button
           onClick={handleAsk}
-          disabled={loading} // Disable button while loading
-          style={{
-            backgroundColor: loading ? '#ccc' : '#00509E', // Gray out button when loading
-            color: '#fff',
-            border: 'none',
-            padding: '0.5rem 1rem',
-            cursor: loading ? 'not-allowed' : 'pointer',
-            borderRadius: '4px',
-            fontWeight: 'bold',
-            transition: 'background 0.3s ease',
-          }}
-          onMouseEnter={(e) => !loading && (e.target.style.backgroundColor = '#003366')}
-          onMouseLeave={(e) => !loading && (e.target.style.backgroundColor = '#00509E')}
+          disabled={loading}
+          className={`text-white font-semibold rounded px-3 py-1 text-sm transition-colors ${
+            loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-800 hover:bg-blue-900'
+          }`}
         >
-          {loading ? 'Asking...' : 'Ask'} {/* Change button text */}
+          {loading ? 'Asking...' : 'Ask'}
         </button>
       </div>
     </div>
