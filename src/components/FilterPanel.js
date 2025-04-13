@@ -1,22 +1,15 @@
+import PropTypes from 'prop-types';
 // src/components/FilterPanel.js
 import React from 'react';
-import PropTypes from 'prop-types';
 
 const sourceOptions = [
   { label: "PubMed", value: "PM" },
-  { label: "PumbMed Central", value: "PMC" },
+  // { label: "PumbMed Central", value: "PMC" },
   { label: "ClinicalTrials.gov", value: "CTG" }
 ];
 
 const FilterPanel = ({ filters, setFilters }) => {
   const [showMore, setShowMore] = React.useState(false);
-
-  // const handleChange = (e) => {
-  //   setFilters({
-  //     ...filters,
-  //     [e.target.name]: e.target.value,
-  //   });
-  // };
   const handleChange = (e) => {
     const { name, value } = e.target;
     // 값이 빈 문자열이면 null로 변환하여 저장

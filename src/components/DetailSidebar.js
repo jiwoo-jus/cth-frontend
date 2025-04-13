@@ -1,6 +1,6 @@
+import PropTypes from 'prop-types';
 // src/components/DetailSidebar.js
 import React from 'react';
-import PropTypes from 'prop-types';
 
 const DetailSidebar = ({ selectedResult, isOpen, toggleSidebar, sidebarWidth }) => {
   const renderCTGContent = (references) => {
@@ -64,14 +64,24 @@ const DetailSidebar = ({ selectedResult, isOpen, toggleSidebar, sidebarWidth }) 
       if (!abstract)
         return <p className="text-sm text-gray-500">No abstract available.</p>;
       return (
+        // <div>
+        //   <h4 className="font-bold text-lg mb-2">Abstract</h4>
+        //   {Object.entries(abstract).map(([key, value]) => (
+        //     <div key={key} className="mb-2">
+        //       <span className="font-bold">{key}</span>
+        //       <span>{value}</span>
+        //     </div>
+        //   ))}
+        // </div>
         <div>
-          <h4 className="font-bold text-lg mb-2">Abstract</h4>
-          {Object.entries(abstract).map(([key, value]) => (
-            <div key={key} className="mb-2">
-              <span className="font-bold">{key}:</span> <span>{value}</span>
-            </div>
-          ))}
-        </div>
+        <h4 className="font-bold text-lg mb-2">Abstract</h4>
+        {Object.entries(selectedResult.abstract).map(([key, value]) => (
+          <div key={key} className="mb-2">
+            <span className="font-bold block">{key}</span>
+            <span className="block">{value}</span>
+          </div>
+        ))}
+      </div>
       );
     } else if (selectedResult.source === 'CTG') {
       const references = selectedResult.references;
@@ -86,7 +96,7 @@ const DetailSidebar = ({ selectedResult, isOpen, toggleSidebar, sidebarWidth }) 
 
   return (
     <div
-      className="bg-white shadow-md p-2 overflow-auto sticky top-0"
+      className="h-screen overflow-y-auto p-2 shadow-md bg-white sticky top-0"
       style={{ width: isOpen ? sidebarWidth : "2rem", transition: "width 0.3s" }}
     >
       <button onClick={toggleSidebar} className="text-sm text-blue-500 focus:outline-none">

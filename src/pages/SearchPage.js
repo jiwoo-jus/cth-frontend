@@ -1,12 +1,11 @@
+import _isEqual from 'lodash/isEqual';
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import _isEqual from 'lodash/isEqual';
 
 import { searchClinicalTrials } from '../api/searchApi';
 import DetailSidebar from '../components/DetailSidebar';
 import FilterPanel from '../components/FilterPanel';
 import SearchBar from '../components/SearchBar';
-import SearchHistorySidebar from '../components/SearchHistorySidebar';
 import SearchResults from '../components/SearchResults';
 
 // 세션 스토리지 캐시 key
@@ -84,10 +83,8 @@ const SearchPage = () => {
   const [loading, setLoading] = useState(false);
   const [searchHistory, setSearchHistory] = useState([]);
   const [selectedResult, setSelectedResult] = useState(null);
-  const [leftSidebarOpen, setLeftSidebarOpen] = useState(true);
   const [rightSidebarOpen, setRightSidebarOpen] = useState(true);
-  const [leftWidth, setLeftWidth] = useState(250);
-  const [rightWidth, setRightWidth] = useState(500);
+  const [rightWidth, setRightWidth] = useState(750);
 
   // URL 쿼리 제거 (최초 로드시)
   useEffect(() => {
@@ -429,43 +426,11 @@ const SearchPage = () => {
     });
   };
 
-  // 검색 이력 선택 시 상태 복원 후 검색 실행
-  const handleHistorySelect = (historyItem) => {
-    console.log('[History] Selected history item:', historyItem);
-    setFilters(historyItem);
-    setPage(historyItem.page || 1);
-    if (historyItem.ctgTokenHistory) {
-      setCtgTokenHistory(historyItem.ctgTokenHistory);
-    }
-    handleSearch(historyItem);
-  };
 
   // 결과 항목 선택 시 처리
   const handleResultSelect = (result) => {
     console.log('[Result] Selected result:', result);
     setSelectedResult(result);
-  };
-
-  // 왼쪽 사이드바 리사이징
-  const onLeftResizerMouseDown = (e) => {
-    e.preventDefault();
-    const startX = e.clientX;
-    const startWidth = leftWidth;
-    console.log('[Resizer] Left sidebar resize started at', startX, 'with initial width:', startWidth);
-    const onMouseMove = (eMove) => {
-      const newWidth = startWidth + (eMove.clientX - startX);
-      if (newWidth > 100 && newWidth < 500) {
-        console.log('[Resizer] Left sidebar resizing: new width:', newWidth);
-        setLeftWidth(newWidth);
-      }
-    };
-    const onMouseUp = () => {
-      console.log('[Resizer] Left sidebar resize ended.');
-      window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("mouseup", onMouseUp);
-    };
-    window.addEventListener("mousemove", onMouseMove);
-    window.addEventListener("mouseup", onMouseUp);
   };
 
   // 오른쪽 사이드바 리사이징
@@ -514,26 +479,6 @@ const SearchPage = () => {
 
   return (
     <div className="flex min-h-screen">
-      {/* 왼쪽 검색 이력 사이드바 */}
-      <div className="flex flex-col">
-        <SearchHistorySidebar 
-          history={searchHistory}
-          onSelect={handleHistorySelect}
-          isOpen={leftSidebarOpen}
-          toggleSidebar={() => {
-            console.log('[Sidebar] Toggling left sidebar from', leftSidebarOpen, 'to', !leftSidebarOpen);
-            setLeftSidebarOpen(!leftSidebarOpen);
-          }}
-          sidebarWidth={leftWidth}
-        />
-        {leftSidebarOpen && (
-          <div
-            onMouseDown={onLeftResizerMouseDown}
-            className="w-1 cursor-ew-resize bg-gray-300"
-          />
-        )}
-      </div>
-
       {/* 메인 컨텐츠 영역 */}
       <div className="flex-grow p-4">
         <div className="mb-4 cursor-pointer" onClick={handleLogoClick}>
