@@ -1,93 +1,108 @@
-// src/components/SearchResults.js
+import { Eye, FileText } from 'lucide-react';
 import PropTypes from 'prop-types';
 import React from 'react';
 
 const SearchResults = ({ results, onResultSelect, onViewDetails }) => {
   if (!results) {
-    return <div>No results to display.</div>;
+    return <div className="text-center text-gray-500 mt-4">No results to display.</div>;
   }
 
   const pmResults = results.pm || { total: 0, results: [] };
   const ctgResults = results.ctg || { total: 0, results: [] };
 
   return (
-    <div className="mt-6">
+    <div className="mt-6 space-y-10 px-4 w-full max-w-7xl mx-auto">
       {/* PubMed Results */}
-      <div className="mb-8">
-        <h3 className="text-xl font-semibold mb-2">
+      <section>
+        <h3 className="text-lg font-semibold border-b border-gray-300 pb-1 mb-4 flex items-center gap-2">
+          <FileText size={18} className="text-blue-600" />
           PubMed Results ({pmResults.total})
         </h3>
         {pmResults.results.length > 0 ? (
-          <ul className="space-y-4">
+          <ul className="space-y-3">
             {pmResults.results.map((item) => (
               <li
                 key={item.id}
-                className="p-4 bg-white shadow rounded-md flex justify-between items-start cursor-pointer hover:shadow-md transition-shadow"
+                className="group p-4 bg-white border border-gray-200 rounded-md shadow-sm hover:shadow-md transition-shadow flex flex-col md:flex-row justify-between gap-4 cursor-pointer"
                 onClick={() => onResultSelect(item)}
               >
-                <div>
-                  <h4 className="font-bold">{item.title}</h4>
-                  <p className="text-sm text-gray-600">
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-semibold text-blue-800 group-hover:underline text-base">
+                    {item.title}
+                  </h4>
+                  <p className="text-sm text-gray-600 mt-1 truncate">
                     {item.journal} &middot; {item.pubDate}
                   </p>
-                  <p className="text-sm">Authors: {item.authors.join(", ")}</p>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-gray-700 truncate">
+                    Authors: {item.authors.join(", ")}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1 truncate">
                     PMID: {item.pmid} {item.pmcid && `| PMCID: ${item.pmcid}`}
                   </p>
                 </div>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onViewDetails(item);
-                  }}
-                  className="ml-4 px-3 py-1 bg-[#00509E] text-white text-sm rounded hover:bg-[#003366] transition-colors"
-                >
-                  View
-                </button>
+                <div className="shrink-0 self-start md:self-center">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onViewDetails(item);
+                    }}
+                    className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                  >
+                    <Eye size={14} /> View
+                  </button>
+                </div>
               </li>
             ))}
           </ul>
         ) : (
-          <p>No PubMed results found.</p>
+          <p className="text-sm text-gray-500">No PubMed results found.</p>
         )}
-      </div>
-      {/* CTG Results */}
-      <div>
-        <h3 className="text-xl font-semibold mb-2">
+      </section>
+
+      {/* ClinicalTrials.gov Results */}
+      <section>
+        <h3 className="text-lg font-semibold border-b border-gray-300 pb-1 mb-4 flex items-center gap-2">
+          <FileText size={18} className="text-green-700" />
           ClinicalTrials.gov Results ({ctgResults.total})
         </h3>
         {ctgResults.results.length > 0 ? (
-          <ul className="space-y-4">
+          <ul className="space-y-3">
             {ctgResults.results.map((study) => (
               <li
                 key={study.id}
-                className="p-4 bg-white shadow rounded-md flex justify-between items-start cursor-pointer hover:shadow-md transition-shadow"
+                className="group p-4 bg-white border border-gray-200 rounded-md shadow-sm hover:shadow-md transition-shadow flex flex-col md:flex-row justify-between gap-4 cursor-pointer"
                 onClick={() => onResultSelect(study)}
               >
-                <div>
-                  <h4 className="font-bold">{study.title}</h4>
-                  <p className="text-sm text-gray-600">Status: {study.status}</p>
-                  <p className="text-sm text-gray-500">NCT ID: {study.id}</p>
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-semibold text-blue-800 group-hover:underline text-base">
+                    {study.title}
+                  </h4>
+                  <p className="text-sm text-gray-600 mt-1 truncate">Status: {study.status}</p>
+                  <p className="text-xs text-gray-500 truncate">NCT ID: {study.id}</p>
                   {study.conditions && study.conditions.length > 0 && (
-                    <p className="text-sm">Conditions: {study.conditions.join(", ")}</p>
+                    <p className="text-sm text-gray-700 truncate">
+                      Conditions: {study.conditions.join(", ")}
+                    </p>
                   )}
                 </div>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onViewDetails(study);
-                  }}
-                  className="ml-4 px-3 py-1 bg-[#00509E] text-white text-sm rounded hover:bg-[#003366] transition-colors"
-                >
-                  View
-                </button>
+                <div className="shrink-0 self-start md:self-center">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onViewDetails(study);
+                    }}
+                    className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                  >
+                    <Eye size={14} /> View
+                  </button>
+                </div>
               </li>
             ))}
           </ul>
         ) : (
-          <p>No ClinicalTrials.gov results found.</p>
+          <p className="text-sm text-gray-500">No ClinicalTrials.gov results found.</p>
         )}
-      </div>
+      </section>
     </div>
   );
 };

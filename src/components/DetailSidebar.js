@@ -64,15 +64,6 @@ const DetailSidebar = ({ selectedResult, isOpen, toggleSidebar, sidebarWidth }) 
       if (!abstract)
         return <p className="text-sm text-gray-500">No abstract available.</p>;
       return (
-        // <div>
-        //   <h4 className="font-bold text-lg mb-2">Abstract</h4>
-        //   {Object.entries(abstract).map(([key, value]) => (
-        //     <div key={key} className="mb-2">
-        //       <span className="font-bold">{key}</span>
-        //       <span>{value}</span>
-        //     </div>
-        //   ))}
-        // </div>
         <div>
         <h4 className="font-bold text-lg mb-2">Abstract</h4>
         {Object.entries(selectedResult.abstract).map(([key, value]) => (
@@ -96,18 +87,22 @@ const DetailSidebar = ({ selectedResult, isOpen, toggleSidebar, sidebarWidth }) 
 
   return (
     <div
-      className="h-screen overflow-y-auto p-2 shadow-md bg-white sticky top-0"
-      style={{ width: isOpen ? sidebarWidth : "2rem", transition: "width 0.3s" }}
-    >
-      <button onClick={toggleSidebar} className="text-sm text-blue-500 focus:outline-none">
-        {isOpen ? ">>" : "<<"}
+    className={`h-screen overflow-y-auto bg-white shadow-md border-l sticky top-0 transition-all duration-300 ease-in-out`}
+    style={{ width: isOpen ? sidebarWidth : '2rem' }}
+  >
+    <div className="p-2 border-b flex justify-end">
+      <button
+        onClick={toggleSidebar}
+        className="text-xs font-bold text-blue-600 hover:underline focus:outline-none"
+      >
+        {isOpen ? '>>' : '<<'}
       </button>
-      {isOpen && (
-        <div className="mt-2 text-sm break-words">
-          {renderContent()}
-        </div>
-      )}
     </div>
+    {isOpen && (
+      <div className="px-4 py-2 text-sm break-words">{renderContent()}</div>
+    )}
+  </div>
+  
   );
 };
 

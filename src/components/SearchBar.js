@@ -1,8 +1,9 @@
-import PropTypes from 'prop-types';
+import { Search } from 'lucide-react';
 // src/components/SearchBar.js
+import PropTypes from 'prop-types';
 import React from 'react';
 
-const SearchBar = ({ query, setQuery, onSubmit }) => {
+export const SearchBar = ({ query, setQuery, onSubmit }) => {
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') {
       onSubmit();
@@ -10,19 +11,20 @@ const SearchBar = ({ query, setQuery, onSubmit }) => {
   };
 
   return (
-    <div className="flex items-center justify-center p-4">
+    <div className="w-full max-w-4xl mx-auto flex items-center gap-2 px-4 mb-6">
       <input
         type="text"
-        placeholder="Enter your query..."
+        placeholder="Search clinical terms, conditions, or interventions..."
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         onKeyDown={handleKeyDown}
-        className="w-full max-w-xl px-4 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+        className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm shadow-sm"
       />
       <button
         onClick={onSubmit}
-        className="px-6 py-2 bg-[#003366] text-white font-semibold rounded-r-md hover:bg-[#003366] transition-colors"
+        className="inline-flex items-center gap-1 px-4 py-2 text-sm font-medium text-white bg-blue-700 rounded-md hover:bg-blue-800 transition"
       >
+        <Search size={16} />
         Search
       </button>
     </div>
@@ -34,5 +36,3 @@ SearchBar.propTypes = {
   setQuery: PropTypes.func.isRequired,
   onSubmit: PropTypes.func.isRequired,
 };
-
-export default SearchBar;

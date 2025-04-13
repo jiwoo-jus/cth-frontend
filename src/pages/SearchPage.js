@@ -4,8 +4,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { searchClinicalTrials } from '../api/searchApi';
 import DetailSidebar from '../components/DetailSidebar';
-import FilterPanel from '../components/FilterPanel';
-import SearchBar from '../components/SearchBar';
+import { FilterPanel } from '../components/FilterPanel';
+import { SearchBar } from '../components/SearchBar';
 import SearchResults from '../components/SearchResults';
 
 // 세션 스토리지 캐시 key
@@ -508,7 +508,10 @@ const handleViewDetails = (item) => {
       <div className="flex-grow p-4">
         <div className="mb-4 cursor-pointer" onClick={handleLogoClick}>
           {/* <h1 className="text-4xl font-bold text-center">Clinical Trials Hub</h1> */}
-          <h1 className="text-4xl font-bold text-center text-[#003366]">Clinical Trials Hub</h1>
+          {/* <h1 className="text-4xl font-bold text-center text-[#003366]">Clinical Trials Hub</h1> */}
+          <h1 className="text-3xl font-bold text-center text-blue-800 tracking-tight mb-6 cursor-pointer hover:opacity-80 transition">
+  Clinical Trials Hub
+</h1>
         </div>
 
         {/* 검색 바 */}
@@ -537,31 +540,25 @@ const handleViewDetails = (item) => {
 
         {/* 페이지 네비게이션 버튼 */}
         {results && results.pm && (
-          <div className="flex justify-center mt-4 space-x-4">
-            <button
-              disabled={page === 1}
-              onClick={() => {
-                console.log('[Pagination] Previous button clicked.');
-                goToPage(page - 1);
-              }}
-              className="px-4 py-2 bg-blue-500 text-white rounded disabled:opacity-50"
-            >
-              Previous
-            </button>
-            <span className="self-center">
-              Page {page} of {totalPages}
-            </span>
-            <button
-              disabled={page === totalPages}
-              onClick={() => {
-                console.log('[Pagination] Next button clicked.');
-                goToPage(page + 1);
-              }}
-              className="px-4 py-2 bg-blue-500 text-white rounded disabled:opacity-50"
-            >
-              Next
-            </button>
-          </div>
+          <div className="flex justify-center items-center gap-6 mt-8">
+          <button
+            disabled={page === 1}
+            onClick={() => goToPage(page - 1)}
+            className="px-4 py-2 text-sm font-medium rounded-md bg-blue-600 text-white disabled:opacity-40 hover:bg-blue-700 transition"
+          >
+            Previous
+          </button>
+          <span className="text-sm text-gray-700">
+            Page {page} of {totalPages}
+          </span>
+          <button
+            disabled={page === totalPages}
+            onClick={() => goToPage(page + 1)}
+            className="px-4 py-2 text-sm font-medium rounded-md bg-blue-600 text-white disabled:opacity-40 hover:bg-blue-700 transition"
+          >
+            Next
+          </button>
+        </div>        
         )}
       </div>
 
