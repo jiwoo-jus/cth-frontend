@@ -11,15 +11,19 @@ import SearchResults from '../components/SearchResults';
 // 세션 스토리지 캐시 key
 const SESSION_KEY = "searchState";
 
-// URL 생성 시 불필요한 (빈) 값들을 제거하는 헬퍼 함수
+/**
+ * URL 생성 시 필수 검색 필터만 포함하도록 수정합니다.
+ * 오직 cond, intr, sources만 포함되며,
+ * sources의 경우 배열이면 underscore 구분자(ex. "PM,CTG")로 변환합니다.
+ */
 const buildUrlParams = (filtersObj) => {
+  const allowedKeys = ['cond', 'intr', 'sources'];
   const params = {};
-  Object.entries(filtersObj).forEach(([key, value]) => {
-    // user_query는 사용하지 않으며, 빈 문자열/undefined/null은 제외
-    if (key === 'user_query') return;
+  allowedKeys.forEach((key) => {
+    const value = filtersObj[key];
     if (value === undefined || value === null || value === '') return;
-    if (key === "sources" || key === "refinedQuery") {
-      params[key] = JSON.stringify(value);
+    if (key === 'sources') {
+      params[key] = Array.isArray(value) ? value.join(',') : value;
     } else {
       params[key] = value;
     }
@@ -28,6 +32,7 @@ const buildUrlParams = (filtersObj) => {
 };
 
 // 초기 필터 상태 (모든 빈 값은 null)
+// sources는 ["PM", "CTG"]로만 설정 (PMC는 제외)
 const defaultFilters = () => ({
   cond: null,
   intr: null,
@@ -39,22 +44,25 @@ const defaultFilters = () => ({
   sponsor: null,
   location: null,
   status: null,
-  sources: ["PM", "PMC", "CTG"]
+  sources: ["PM", "CTG"]
 });
 
-// URL params 또는 기타 객체에서 필터 생성 (빈 값은 null 처리)
+/**
+ * URL params 또는 기타 객체에서 필터 생성 (빈 값은 null 처리)
+ * sources 값은 "PM_CTG"와 같이 underscore로 연결된 문자열을 배열로 변환합니다.
+ */
 const createFilters = (params = {}) => ({
   cond: params.cond || null,
   intr: params.intr || null,
-  other_term: params.other_term || null,
-  journal: params.journal || null,
-  sex: params.sex || null,
-  age: params.age || null,
-  studyType: params.studyType || null,
-  sponsor: params.sponsor || null,
-  location: params.location || null,
-  status: params.status || null,
-  sources: params.sources ? JSON.parse(params.sources) : ["PM", "PMC", "CTG"]
+  other_term: null,
+  journal: null,
+  sex: null,
+  age: null,
+  studyType: null,
+  sponsor: null,
+  location: null,
+  status: null,
+  sources: params.sources ? params.sources.split(',') : ["PM", "CTG"]
 });
 
 const SearchPage = () => {
@@ -144,11 +152,7 @@ const SearchPage = () => {
       });
 
       const newParams = buildUrlParams({
-        ...state.filters,
-        page: state.page,
-        pageSize: state.pageSize,
-        refinedQuery: state.refinedQuery,
-        isRefined: state.refinedQuery ? "true" : "false"
+        ...state.filters
       });
       console.log('[Initial] Setting URL parameters from location.state:', newParams);
       setSearchParams(newParams);
@@ -174,12 +178,9 @@ const SearchPage = () => {
       }
       const newParams = buildUrlParams({
         ...cachedState.filters,
-        page: cachedState.currentPage,
-        pageSize: cachedState.pageSize,
-        refinedQuery: cachedState.pageCache && cachedState.pageCache[cachedState.currentPage]
-          ? cachedState.pageCache[cachedState.currentPage].refinedQuery
-          : undefined,
-        isRefined: cachedState.pageCache && cachedState.pageCache[cachedState.currentPage] && cachedState.pageCache[cachedState.currentPage].refinedQuery
+        isRefined: cachedState.pageCache &&
+                   cachedState.pageCache[cachedState.currentPage] &&
+                   cachedState.pageCache[cachedState.currentPage].refinedQuery
           ? "true"
           : "false"
       });
@@ -361,9 +362,6 @@ const SearchPage = () => {
       }
       const newParams = buildUrlParams({
         ...updatedFilters,
-        page: updatedFilters.page,
-        pageSize: updatedFilters.pageSize,
-        refinedQuery: updatedFilters.refinedQuery,
         isRefined: updatedFilters.isRefined ? "true" : "false"
       });
       console.log('[Search] Updating URL and cache with newParams:', newParams);
@@ -404,9 +402,6 @@ const SearchPage = () => {
       setCtgTokenHistory(pageData.ctgTokenHistory);
       const newParams = buildUrlParams({
         ...cached.filters,
-        page: newPage,
-        pageSize: cached.pageSize,
-        refinedQuery: pageData.refinedQuery,
         isRefined: pageData.refinedQuery ? "true" : "false"
       });
       console.log('[Pagination] Updating URL for cached page change:', newParams);
@@ -425,7 +420,6 @@ const SearchPage = () => {
       ctgPageToken: ctgTokenHistory[newPage] || null
     });
   };
-
 
   // 결과 항목 선택 시 처리
   const handleResultSelect = (result) => {
