@@ -507,7 +507,8 @@ const handleViewDetails = (item) => {
       {/* 메인 컨텐츠 영역 */}
       <div className="flex-grow p-4">
         <div className="mb-4 cursor-pointer" onClick={handleLogoClick}>
-          <h1 className="text-4xl font-bold text-center">Clinical Trials Hub</h1>
+          {/* <h1 className="text-4xl font-bold text-center">Clinical Trials Hub</h1> */}
+          <h1 className="text-4xl font-bold text-center text-[#003366]">Clinical Trials Hub</h1>
         </div>
 
         {/* 검색 바 */}

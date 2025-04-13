@@ -22,27 +22,27 @@ const SearchResults = ({ results, onResultSelect, onViewDetails }) => {
             {pmResults.results.map((item) => (
               <li
                 key={item.id}
-                className="p-4 bg-white shadow rounded-md cursor-pointer"
+                className="p-4 bg-white shadow rounded-md flex justify-between items-start cursor-pointer hover:shadow-md transition-shadow"
                 onClick={() => onResultSelect(item)}
               >
-                <h4 className="font-bold">{item.title}</h4>
-                <p className="text-sm text-gray-600">
-                  {item.journal} &middot; {item.pubDate}
-                </p>
-                <p className="text-sm">
-                  Authors: {item.authors.join(", ")}
-                </p>
-                <p className="text-sm text-gray-500">
-                  PMID: {item.pmid} {item.pmcid && `| PMCID: ${item.pmcid}`}
-                </p>
+                <div>
+                  <h4 className="font-bold">{item.title}</h4>
+                  <p className="text-sm text-gray-600">
+                    {item.journal} &middot; {item.pubDate}
+                  </p>
+                  <p className="text-sm">Authors: {item.authors.join(", ")}</p>
+                  <p className="text-sm text-gray-500">
+                    PMID: {item.pmid} {item.pmcid && `| PMCID: ${item.pmcid}`}
+                  </p>
+                </div>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     onViewDetails(item);
                   }}
-                  className="mt-2 px-3 py-1 bg-green-500 text-white text-sm rounded hover:bg-green-600"
+                  className="ml-4 px-3 py-1 bg-[#00509E] text-white text-sm rounded hover:bg-[#003366] transition-colors"
                 >
-                  View Details
+                  View
                 </button>
               </li>
             ))}
@@ -61,29 +61,25 @@ const SearchResults = ({ results, onResultSelect, onViewDetails }) => {
             {ctgResults.results.map((study) => (
               <li
                 key={study.id}
-                className="p-4 bg-white shadow rounded-md cursor-pointer"
+                className="p-4 bg-white shadow rounded-md flex justify-between items-start cursor-pointer hover:shadow-md transition-shadow"
                 onClick={() => onResultSelect(study)}
               >
-                <h4 className="font-bold">{study.title}</h4>
-                <p className="text-sm text-gray-600">
-                  Status: {study.status}
-                </p>
-                <p className="text-sm text-gray-500">
-                  NCT ID: {study.id}
-                </p>
-                {study.conditions && study.conditions.length > 0 && (
-                  <p className="text-sm">
-                    Conditions: {study.conditions.join(", ")}
-                  </p>
-                )}
+                <div>
+                  <h4 className="font-bold">{study.title}</h4>
+                  <p className="text-sm text-gray-600">Status: {study.status}</p>
+                  <p className="text-sm text-gray-500">NCT ID: {study.id}</p>
+                  {study.conditions && study.conditions.length > 0 && (
+                    <p className="text-sm">Conditions: {study.conditions.join(", ")}</p>
+                  )}
+                </div>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     onViewDetails(study);
                   }}
-                  className="mt-2 px-3 py-1 bg-green-500 text-white text-sm rounded hover:bg-green-600"
+                  className="ml-4 px-3 py-1 bg-[#00509E] text-white text-sm rounded hover:bg-[#003366] transition-colors"
                 >
-                  View Details
+                  View
                 </button>
               </li>
             ))}

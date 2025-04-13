@@ -1,6 +1,6 @@
+import PropTypes from 'prop-types';
 // src/components/SearchBar.js
 import React from 'react';
-import PropTypes from 'prop-types';
 
 const SearchBar = ({ query, setQuery, onSubmit }) => {
   const handleKeyDown = (e) => {
@@ -21,7 +21,7 @@ const SearchBar = ({ query, setQuery, onSubmit }) => {
       />
       <button
         onClick={onSubmit}
-        className="px-6 py-2 bg-blue-500 text-white font-semibold rounded-r-md hover:bg-blue-600 transition-colors"
+        className="px-6 py-2 bg-[#003366] text-white font-semibold rounded-r-md hover:bg-[#003366] transition-colors"
       >
         Search
       </button>
