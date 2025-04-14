@@ -509,7 +509,7 @@ const handleViewDetails = (item) => {
         <div className="mb-4 cursor-pointer" onClick={handleLogoClick}>
           {/* <h1 className="text-4xl font-bold text-center">Clinical Trials Hub</h1> */}
           {/* <h1 className="text-4xl font-bold text-center text-[#003366]">Clinical Trials Hub</h1> */}
-          <h1 className="text-3xl font-bold text-center text-blue-800 tracking-tight mb-6 cursor-pointer hover:opacity-80 transition">
+          <h1 className="text-3xl font-bold text-center text-custom-blue-deep tracking-tight mb-6 cursor-pointer hover:opacity-80 transition">
   Clinical Trials Hub
 </h1>
         </div>
@@ -544,17 +544,17 @@ const handleViewDetails = (item) => {
           <button
             disabled={page === 1}
             onClick={() => goToPage(page - 1)}
-            className="px-4 py-2 text-sm font-medium rounded-md bg-blue-600 text-white disabled:opacity-40 hover:bg-blue-700 transition"
+            className="px-4 py-2 text-sm font-medium rounded-md bg-custom-blue text-white disabled:opacity-40 hover:bg-custom-blue-hover transition"
           >
             Previous
           </button>
-          <span className="text-sm text-gray-700">
+          <span className="text-sm text-custom-text">
             Page {page} of {totalPages}
           </span>
           <button
             disabled={page === totalPages}
             onClick={() => goToPage(page + 1)}
-            className="px-4 py-2 text-sm font-medium rounded-md bg-blue-600 text-white disabled:opacity-40 hover:bg-blue-700 transition"
+            className="px-4 py-2 text-sm font-medium rounded-md bg-custom-blue text-white disabled:opacity-40 hover:bg-custom-blue-hover transition"
           >
             Next
           </button>
@@ -566,7 +566,7 @@ const handleViewDetails = (item) => {
       {rightSidebarOpen && (
         <div
           onMouseDown={onRightResizerMouseDown}
-          className="w-1 cursor-ew-resize bg-gray-300"
+          className="w-1 cursor-ew-resize bg-custom-border"
         />
       )}
       <DetailSidebar 

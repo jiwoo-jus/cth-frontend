@@ -18,11 +18,11 @@ export const SearchBar = ({ query, setQuery, onSubmit }) => {
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         onKeyDown={handleKeyDown}
-        className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm shadow-sm"
+        className="flex-1 px-4 py-2 border border-custom-border rounded-md focus:outline-none focus:ring-2 focus:ring-custom text-sm shadow-sm"
       />
       <button
         onClick={onSubmit}
-        className="inline-flex items-center gap-1 px-4 py-2 text-sm font-medium text-white bg-blue-700 rounded-md hover:bg-blue-800 transition"
+        className="inline-flex items-center gap-1 px-4 py-2 text-sm font-medium text-white bg-custom-blue-hover rounded-md hover:bg-custom-blue-deep transition"
       >
         <Search size={16} />
         Search

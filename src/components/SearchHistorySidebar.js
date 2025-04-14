@@ -37,7 +37,7 @@ const SearchHistorySidebar = ({ history, onSelect, isOpen, toggleSidebar, sideba
                 <li key={index} className="mb-2 border-b pb-1">
                   <button
                     onClick={() => onSelect(item)}
-                    className="block text-left w-full text-gray-700 hover:bg-gray-100 rounded p-1"
+                    className="block text-left w-full text-custom-text hover:bg-custom-input-bg rounded p-1"
                   >
                     {Object.entries(item).map(([key, value]) => {
                       if (!value) return null;

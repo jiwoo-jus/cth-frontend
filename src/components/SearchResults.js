@@ -14,8 +14,8 @@ const SearchResults = ({ results, onResultSelect, onViewDetails }) => {
     <div className="mt-6 space-y-10 px-4 w-full max-w-7xl mx-auto">
       {/* PubMed Results */}
       <section>
-        <h3 className="text-lg font-semibold border-b border-gray-300 pb-1 mb-4 flex items-center gap-2">
-          <FileText size={18} className="text-blue-600" />
+        <h3 className="text-lg font-semibold border-b border-custom-border pb-1 mb-4 flex items-center gap-2">
+          <FileText size={18} className="text-custom-blue" />
           PubMed Results ({pmResults.total})
         </h3>
         {pmResults.results.length > 0 ? (
@@ -27,13 +27,13 @@ const SearchResults = ({ results, onResultSelect, onViewDetails }) => {
                 onClick={() => onResultSelect(item)}
               >
                 <div className="flex-1 min-w-0">
-                  <h4 className="font-semibold text-blue-800 group-hover:underline text-base">
+                  <h4 className="font-semibold text-custom-blue-deep group-hover:underline text-base">
                     {item.title}
                   </h4>
-                  <p className="text-sm text-gray-600 mt-1 truncate">
+                  <p className="text-sm text-custom-text-subtle mt-1 truncate">
                     {item.journal} &middot; {item.pubDate}
                   </p>
-                  <p className="text-sm text-gray-700 truncate">
+                  <p className="text-sm text-custom-text truncate">
                     Authors: {item.authors.join(", ")}
                   </p>
                   <p className="text-xs text-gray-500 mt-1 truncate">
@@ -46,7 +46,7 @@ const SearchResults = ({ results, onResultSelect, onViewDetails }) => {
                       e.stopPropagation();
                       onViewDetails(item);
                     }}
-                    className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                    className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-custom-blue text-white rounded hover:bg-custom-blue-hover transition-colors"
                   >
                     <Eye size={14} /> View
                   </button>
@@ -61,7 +61,7 @@ const SearchResults = ({ results, onResultSelect, onViewDetails }) => {
 
       {/* ClinicalTrials.gov Results */}
       <section>
-        <h3 className="text-lg font-semibold border-b border-gray-300 pb-1 mb-4 flex items-center gap-2">
+        <h3 className="text-lg font-semibold border-b border-custom-border pb-1 mb-4 flex items-center gap-2">
           <FileText size={18} className="text-green-700" />
           ClinicalTrials.gov Results ({ctgResults.total})
         </h3>
@@ -74,13 +74,13 @@ const SearchResults = ({ results, onResultSelect, onViewDetails }) => {
                 onClick={() => onResultSelect(study)}
               >
                 <div className="flex-1 min-w-0">
-                  <h4 className="font-semibold text-blue-800 group-hover:underline text-base">
+                  <h4 className="font-semibold text-custom-blue-deep group-hover:underline text-base">
                     {study.title}
                   </h4>
-                  <p className="text-sm text-gray-600 mt-1 truncate">Status: {study.status}</p>
+                  <p className="text-sm text-custom-text-subtle mt-1 truncate">Status: {study.status}</p>
                   <p className="text-xs text-gray-500 truncate">NCT ID: {study.id}</p>
                   {study.conditions && study.conditions.length > 0 && (
-                    <p className="text-sm text-gray-700 truncate">
+                    <p className="text-sm text-custom-text truncate">
                       Conditions: {study.conditions.join(", ")}
                     </p>
                   )}
@@ -91,7 +91,7 @@ const SearchResults = ({ results, onResultSelect, onViewDetails }) => {
                       e.stopPropagation();
                       onViewDetails(study);
                     }}
-                    className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                    className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-custom-blue text-white rounded hover:bg-custom-blue-hover transition-colors"
                   >
                     <Eye size={14} /> View
                   </button>

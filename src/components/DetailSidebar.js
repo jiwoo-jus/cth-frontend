@@ -21,23 +21,23 @@ const DetailSidebar = ({ selectedResult, isOpen, toggleSidebar, sidebarWidth }) 
           <div key={group} className="mb-4">
             <h4 className="font-bold text-lg mb-1">{group}</h4>
             {group === "General" && (
-              <p className="text-sm text-gray-600 mb-1">
+              <p className="text-sm text-custom-text-subtle mb-1">
                 These publications are provided voluntarily by the person who enters information about the study.
               </p>
             )}
             {group === "Study Results" && (
-              <p className="text-sm text-gray-600 mb-1">
+              <p className="text-sm text-custom-text-subtle mb-1">
                 These publications are about the study results.
               </p>
             )}
             {group === "From PubMed" && (
-              <p className="text-sm text-gray-600 mb-1">
+              <p className="text-sm text-custom-text-subtle mb-1">
                 These publications come from PubMed, a public database of scientific and medical articles.
               </p>
             )}
             <ul className="space-y-1">
               {refs.map((ref, idx) => (
-                <li key={idx} className="text-sm text-gray-700 border-b pb-1">
+                <li key={idx} className="text-sm text-custom-text border-b pb-1">
                   {ref.pmid && (
                     <div>
                       <span className="font-bold">PMID:</span> {ref.pmid}
@@ -93,7 +93,7 @@ const DetailSidebar = ({ selectedResult, isOpen, toggleSidebar, sidebarWidth }) 
     <div className="p-2 border-b flex justify-end">
       <button
         onClick={toggleSidebar}
-        className="text-xs font-bold text-blue-600 hover:underline focus:outline-none"
+        className="text-xs font-bold text-custom-blue hover:underline focus:outline-none"
       >
         {isOpen ? '>>' : '<<'}
       </button>

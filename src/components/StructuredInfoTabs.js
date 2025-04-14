@@ -35,8 +35,8 @@ const StructuredInfoTabs = ({ structuredInfo }) => {
             key={key}
             className={`text-sm px-3 py-1 rounded-t font-semibold font-medium border-b-2 transition-colors whitespace-nowrap ${
               activeTab === key
-                ? 'text-blue-800 border-blue-600 bg-blue-50'
-                : 'text-gray-600 border-transparent hover:border-gray-300'
+                ? 'text-custom-blue-deep border-custom-blue bg-blue-50'
+                : 'text-custom-text-subtle border-transparent hover:border-custom-border'
             }`}
             onClick={() => setActiveTab(key)}
           >

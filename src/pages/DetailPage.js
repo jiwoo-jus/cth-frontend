@@ -79,7 +79,7 @@ const DetailPage = () => {
   return (
     <div className="px-4 py-6 max-w-7xl mx-auto">
       <h1
-        className="text-3xl font-bold text-blue-900 tracking-tight text-center cursor-pointer mb-6"
+        className="text-3xl font-bold text-custom-blue-deep tracking-tight text-center cursor-pointer mb-6"
         onClick={() => navigate(-1)}
       >
         Clinical Trials Hub
@@ -88,7 +88,7 @@ const DetailPage = () => {
       {(source === 'PM' || source === 'PMC') && (
         <div className="bg-gray-50 border border-gray-200 p-4 rounded mb-6 shadow-sm">
           <h2 className="text-lg font-semibold text-gray-800">{metadata.title}</h2>
-          <div className="mt-2 space-y-2 text-sm text-gray-700">
+          <div className="mt-2 space-y-2 text-sm text-custom-text">
             <div className="flex flex-wrap gap-6">
               {metadata.studyType && <p><strong>Study Type:</strong> {metadata.studyType}</p>}
               {metadata.pubDate && (
@@ -101,7 +101,7 @@ const DetailPage = () => {
               {metadata.nctId && <p>NCT ID: {metadata.nctId}</p>}
             </div>
             {metadata.authors?.length > 0 && (
-              <p className="text-sm text-gray-600">{metadata.authors.join(', ')}</p>
+              <p className="text-sm text-custom-text-subtle">{metadata.authors.join(', ')}</p>
             )}
           </div>
         </div>
@@ -109,7 +109,7 @@ const DetailPage = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-10 gap-4 mb-6">
         <div className="md:col-span-4 border rounded-md shadow-sm p-4">
-          <h2 className="text-lg font-semibold text-blue-800 border-b pb-1 mb-3">ChatBot</h2>
+          <h2 className="text-lg font-semibold text-custom-blue-deep border-b pb-1 mb-3">ChatBot</h2>
           <ChatBot
             paperId={paperId}
             data={fullText}
@@ -118,7 +118,7 @@ const DetailPage = () => {
           />
         </div>
         <div className="md:col-span-6 border rounded-md shadow-sm p-4">
-          <h2 className="text-lg font-semibold text-blue-800 border-b pb-1 mb-3">Structured Info</h2>
+          <h2 className="text-lg font-semibold text-custom-blue-deep border-b pb-1 mb-3">Structured Info</h2>
           {structuredInfo ? (
             <StructuredInfoTabs structuredInfo={structuredInfo} />
           ) : (
@@ -132,7 +132,7 @@ const DetailPage = () => {
       <div className="border rounded-md shadow-sm p-4 mb-6">
         {source === 'CTG' ? (
           <>
-            <h2 className="text-lg font-semibold text-blue-800 border-b pb-1 mb-3">References</h2>
+            <h2 className="text-lg font-semibold text-custom-blue-deep border-b pb-1 mb-3">References</h2>
             <div className="space-y-2 text-sm">
               {structuredInfo?.references?.length > 0 ? (
                 structuredInfo.references.map((ref, index) => (
@@ -142,7 +142,7 @@ const DetailPage = () => {
                         href={`https://pubmed.ncbi.nlm.nih.gov/${ref.pmid}/`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-blue-700 underline"
+                        className="text-custom-blue-hover underline"
                       >
                         {ref.citation}
                       </a>
@@ -159,10 +159,10 @@ const DetailPage = () => {
         ) : (
           <>
             <div className="flex justify-between items-center mb-3">
-              <h2 className="text-lg font-semibold text-blue-800 border-b pb-1">Full Text</h2>
+              <h2 className="text-lg font-semibold text-custom-blue-deep border-b pb-1">Full Text</h2>
               <button
                 onClick={() => setFullTextExpanded(prev => !prev)}
-                className="bg-blue-800 text-white font-semibold text-sm px-4 py-1 rounded hover:bg-blue-900 transition"
+                className="bg-custom-blue-deep text-white font-semibold text-sm px-4 py-1 rounded hover:bg-custom-blue-deep transition"
               >
                 {fullTextExpanded ? 'Collapse ▲' : 'Expand ▼'}
               </button>

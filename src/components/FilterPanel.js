@@ -31,12 +31,12 @@ export const FilterPanel = ({ filters, setFilters }) => {
     <div className="w-full max-w-7xl mx-auto bg-white border border-gray-200 rounded-md shadow-sm p-6 mb-6">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold flex items-center gap-2">
-          <Filter size={18} className="text-blue-700" />
+          <Filter size={18} className="text-custom-blue-hover" />
           Search Filters
         </h2>
         <button
           onClick={() => setShowMore(!showMore)}
-          className="text-sm text-blue-600 hover:underline"
+          className="text-sm text-custom-blue hover:underline"
         >
           {showMore ? 'Hide Advanced Filters' : 'Show Advanced Filters'}
         </button>
@@ -45,7 +45,7 @@ export const FilterPanel = ({ filters, setFilters }) => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {['cond', 'intr', 'other_term'].map((field, idx) => (
           <div key={idx}>
-            <label className="block text-sm font-medium text-gray-700 capitalize">
+            <label className="block text-sm font-medium text-custom-text capitalize">
               {field.replace('_', ' ')}
             </label>
             <input
@@ -54,7 +54,7 @@ export const FilterPanel = ({ filters, setFilters }) => {
               value={filters[field] || ''}
               onChange={handleChange}
               placeholder={`e.g., ${field === 'cond' ? 'Diabetes' : field === 'intr' ? 'Insulin' : 'Keywords'}`}
-              className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm shadow-sm"
+              className="mt-1 block w-full border border-custom-border rounded-md px-3 py-2 text-sm shadow-sm"
             />
           </div>
         ))}
@@ -63,7 +63,7 @@ export const FilterPanel = ({ filters, setFilters }) => {
       {showMore && (
         <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="md:col-span-3">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Search Sources</label>
+            <label className="block text-sm font-medium text-custom-text mb-1">Search Sources</label>
             <div className="flex flex-wrap gap-4">
               {sourceOptions.map((option) => (
                 <label key={option.value} className="flex items-center gap-2 text-sm">
@@ -87,7 +87,7 @@ export const FilterPanel = ({ filters, setFilters }) => {
             ['status', 'e.g., Completed']
           ].map(([name, placeholder], idx) => (
             <div key={idx}>
-              <label className="block text-sm font-medium text-gray-700 capitalize">
+              <label className="block text-sm font-medium text-custom-text capitalize">
                 {name.replace(/([A-Z])/g, ' $1')}
               </label>
               {['sex', 'age', 'studyType'].includes(name) ? (
@@ -95,7 +95,7 @@ export const FilterPanel = ({ filters, setFilters }) => {
                   name={name}
                   value={filters[name] || ''}
                   onChange={handleChange}
-                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm shadow-sm"
+                  className="mt-1 block w-full border border-custom-border rounded-md px-3 py-2 text-sm shadow-sm"
                 >
                   <option value="">Any</option>
                   {name === 'sex' && (<><option value="Male">Male</option><option value="Female">Female</option></>)}
@@ -109,7 +109,7 @@ export const FilterPanel = ({ filters, setFilters }) => {
                   value={filters[name] || ''}
                   onChange={handleChange}
                   placeholder={placeholder}
-                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm shadow-sm"
+                  className="mt-1 block w-full border border-custom-border rounded-md px-3 py-2 text-sm shadow-sm"
                 />
               )}
             </div>

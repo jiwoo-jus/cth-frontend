@@ -17,7 +17,7 @@ const ChatMessage = ({ message, onToggle, onEvidenceClick }) => {
   };
 
   return (
-    <div className="mb-3 border border-gray-300 rounded p-3 text-sm">
+    <div className="mb-3 border border-custom-border rounded p-3 text-sm">
       {/* Question */}
       <div className="flex items-start gap-2 mb-2">
         <strong>Q:</strong>
@@ -40,7 +40,7 @@ const ChatMessage = ({ message, onToggle, onEvidenceClick }) => {
                 {message.evidence.map((evi, idx) => (
                   <li key={idx} className="flex items-start gap-2">
                     <button
-                      className="text-gray-700 hover:text-blue-700 text-xs mt-0.5"
+                      className="text-custom-text hover:text-custom-blue-hover text-xs mt-0.5"
                       onClick={() => onEvidenceClick(evi)}
                       title="Highlight in full text"
                     >
@@ -54,14 +54,14 @@ const ChatMessage = ({ message, onToggle, onEvidenceClick }) => {
           )}
         </>
       ) : (
-        <div className="italic text-gray-600">(Answer collapsed)</div>
+        <div className="italic text-custom-text-subtle">(Answer collapsed)</div>
       )}
 
       {/* Buttons */}
       <div className="flex flex-wrap gap-2 mt-3 text-xs">
         <button
           onClick={onToggle}
-          className="px-2 py-1 border border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white rounded transition-colors font-medium"
+          className="px-2 py-1 border border-custom-blue text-custom-blue hover:bg-custom-blue hover:text-white rounded transition-colors font-medium"
         >
           {message.expanded ? 'Collapse ▲' : 'Expand ▼'}
         </button>
@@ -139,13 +139,13 @@ const ChatBot = ({ paperId, data, onResponse, onEvidenceClick }) => {
           onChange={(e) => setQuestion(e.target.value)}
           onKeyPress={(e) => e.key === 'Enter' && handleAsk()}
           disabled={loading}
-          className="flex-1 border border-gray-300 rounded px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="flex-1 border border-custom-border rounded px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-custom"
         />
         <button
           onClick={handleAsk}
           disabled={loading}
           className={`text-white font-semibold rounded px-3 py-0.5 text-sm transition-colors ${
-            loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-800 hover:bg-blue-900'
+            loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-custom-blue-deep hover:bg-custom-blue-deep'
           }`}
         >
           {loading ? 'Asking...' : 'Ask'}
