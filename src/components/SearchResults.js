@@ -4,7 +4,11 @@ import React from 'react';
 
 const SearchResults = ({ results, onResultSelect, onViewDetails }) => {
   if (!results) {
-    return <div className="text-center text-custom-text-subtle mt-4">No results to display.</div>;
+    return (
+      <div className="text-center text-custom-text-subtle mt-4">
+        No results to display.
+      </div>
+    );
   }
 
   const pmResults = results.pm || { total: 0, results: [] };
@@ -23,8 +27,8 @@ const SearchResults = ({ results, onResultSelect, onViewDetails }) => {
             {pmResults.results.map((item) => (
               <li
                 key={item.id}
-                className="group p-4 bg-white border border-custom-border rounded-md shadow-sm hover:shadow-md transition-shadow flex flex-col md:flex-row justify-between gap-4 cursor-pointer"
                 onClick={() => onResultSelect(item)}
+                className="group p-4 bg-white border border-custom-border rounded-2xl shadow-sm hover:shadow-md transition-shadow flex flex-col md:flex-row justify-between gap-4 cursor-pointer"
               >
                 <div className="flex-1 min-w-0">
                   <h4 className="font-semibold text-custom-blue-deep group-hover:underline text-base">
@@ -46,7 +50,7 @@ const SearchResults = ({ results, onResultSelect, onViewDetails }) => {
                       e.stopPropagation();
                       onViewDetails(item);
                     }}
-                    className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-custom-blue text-white rounded hover:bg-custom-blue-hover transition-colors"
+                    className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-primary-100 text-secondary-100 rounded-full hover:bg-primary-100 transition-colors"
                   >
                     <Eye size={14} /> View
                   </button>
@@ -55,7 +59,9 @@ const SearchResults = ({ results, onResultSelect, onViewDetails }) => {
             ))}
           </ul>
         ) : (
-          <p className="text-sm text-custom-text-subtle">No PubMed results found.</p>
+          <p className="text-sm text-custom-text-subtle">
+            No PubMed results found.
+          </p>
         )}
       </section>
 
@@ -70,15 +76,19 @@ const SearchResults = ({ results, onResultSelect, onViewDetails }) => {
             {ctgResults.results.map((study) => (
               <li
                 key={study.id}
-                className="group p-4 bg-white border border-custom-border rounded-md shadow-sm hover:shadow-md transition-shadow flex flex-col md:flex-row justify-between gap-4 cursor-pointer"
                 onClick={() => onResultSelect(study)}
+                className="group p-4 bg-white border border-custom-border rounded-2xl shadow-sm hover:shadow-md transition-shadow flex flex-col md:flex-row justify-between gap-4 cursor-pointer"
               >
                 <div className="flex-1 min-w-0">
                   <h4 className="font-semibold text-custom-blue-deep group-hover:underline text-base">
                     {study.title}
                   </h4>
-                  <p className="text-sm text-custom-text-subtle mt-1 truncate">Status: {study.status}</p>
-                  <p className="text-xs text-custom-text-subtle truncate">NCT ID: {study.id}</p>
+                  <p className="text-sm text-custom-text-subtle mt-1 truncate">
+                    Status: {study.status}
+                  </p>
+                  <p className="text-xs text-custom-text-subtle truncate">
+                    NCT ID: {study.id}
+                  </p>
                   {study.conditions && study.conditions.length > 0 && (
                     <p className="text-sm text-custom-text truncate">
                       Conditions: {study.conditions.join(", ")}
@@ -91,7 +101,7 @@ const SearchResults = ({ results, onResultSelect, onViewDetails }) => {
                       e.stopPropagation();
                       onViewDetails(study);
                     }}
-                    className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-custom-blue text-white rounded hover:bg-custom-blue-hover transition-colors"
+                    className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-primary-100 text-secondary-100 rounded-full hover:bg-primary-100 transition-colors"
                   >
                     <Eye size={14} /> View
                   </button>
@@ -100,7 +110,9 @@ const SearchResults = ({ results, onResultSelect, onViewDetails }) => {
             ))}
           </ul>
         ) : (
-          <p className="text-sm text-custom-text-subtle">No ClinicalTrials.gov results found.</p>
+          <p className="text-sm text-custom-text-subtle">
+            No ClinicalTrials.gov results found.
+          </p>
         )}
       </section>
     </div>
