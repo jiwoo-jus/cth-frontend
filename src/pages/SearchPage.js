@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { searchClinicalTrials } from '../api/searchApi';
 import DetailSidebar from '../components/DetailSidebar';
+// import SidebarNavigation from '../components/SidebarNavigation';
 import { FilterPanel } from '../components/FilterPanel';
 import { SearchBar } from '../components/SearchBar';
 import SearchResults from '../components/SearchResults';
@@ -91,8 +92,8 @@ const SearchPage = () => {
   const [loading, setLoading] = useState(false);
   const [searchHistory, setSearchHistory] = useState([]);
   const [selectedResult, setSelectedResult] = useState(null);
-  const [rightSidebarOpen, setRightSidebarOpen] = useState(true);
-  const [rightWidth, setRightWidth] = useState(1000);
+  // const [rightSidebarOpen, setRightSidebarOpen] = useState(true);
+  // const [rightWidth, setRightWidth] = useState(1000);
 
   // URL 쿼리 제거 (최초 로드시)
   useEffect(() => {
@@ -459,26 +460,26 @@ const handleViewDetails = (item) => {
   };
 
   // 오른쪽 사이드바 리사이징
-  const onRightResizerMouseDown = (e) => {
-    e.preventDefault();
-    const startX = e.clientX;
-    const startWidth = rightWidth;
-    console.log('[Resizer] Right sidebar resize started at', startX, 'with initial width:', startWidth);
-    const onMouseMove = (eMove) => {
-      const newWidth = startWidth + (startX - eMove.clientX);
-      if (newWidth > 300 && newWidth < 1000) {
-        console.log('[Resizer] Right sidebar resizing: new width:', newWidth);
-        setRightWidth(newWidth);
-      }
-    };
-    const onMouseUp = () => {
-      console.log('[Resizer] Right sidebar resize ended.');
-      window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("mouseup", onMouseUp);
-    };
-    window.addEventListener("mousemove", onMouseMove);
-    window.addEventListener("mouseup", onMouseUp);
-  };
+  // const onRightResizerMouseDown = (e) => {
+  //   e.preventDefault();
+  //   const startX = e.clientX;
+  //   const startWidth = rightWidth;
+  //   console.log('[Resizer] Right sidebar resize started at', startX, 'with initial width:', startWidth);
+  //   const onMouseMove = (eMove) => {
+  //     const newWidth = startWidth + (startX - eMove.clientX);
+  //     if (newWidth > 300 && newWidth < 1000) {
+  //       console.log('[Resizer] Right sidebar resizing: new width:', newWidth);
+  //       setRightWidth(newWidth);
+  //     }
+  //   };
+  //   const onMouseUp = () => {
+  //     console.log('[Resizer] Right sidebar resize ended.');
+  //     window.removeEventListener("mousemove", onMouseMove);
+  //     window.removeEventListener("mouseup", onMouseUp);
+  //   };
+  //   window.addEventListener("mousemove", onMouseMove);
+  //   window.addEventListener("mouseup", onMouseUp);
+  // };
 
   // 총 페이지 수 (예시: PubMed 결과 기준)
   const totalPages = results && results.pm ? Math.ceil(results.pm.total / pageSize) : 1;
@@ -504,12 +505,17 @@ const handleViewDetails = (item) => {
 
   return (
     <div className="flex min-h-screen">
+      {/* 왼쪽 사이드바 네비게이션
+      <aside className="p-4">
+        <SidebarNavigation />
+      </aside> */}
+
       {/* 메인 컨텐츠 영역 */}
       <div className="flex-grow p-4">
         <div className="mb-4 cursor-pointer" onClick={handleLogoClick}>
-          <h1 className="text-3xl font-bold text-center text-black tracking-tight mb-6 cursor-pointer hover:opacity-80 transition">
-  Clinical Trials Hub
-</h1>
+          <h1 className="text-3xl font-bold text-center text-black tracking-tight mb-6 hover:opacity-80 transition">
+            Clinical Trials Hub
+          </h1>
         </div>
 
         {/* 검색 바 */}
@@ -536,45 +542,36 @@ const handleViewDetails = (item) => {
           />
         )}
 
-        {/* 페이지 네비게이션 버튼 */}
+        {/* 페이지네비게이션 버튼 */}
         {results && results.pm && (
           <div className="flex justify-center items-center gap-6 mt-8">
-          <button
-            disabled={page === 1}
-            onClick={() => goToPage(page - 1)}
-            className="px-4 py-2 text-sm font-medium rounded-md bg-custom-blue text-white disabled:opacity-40 hover:bg-custom-blue-hover transition"
-          >
-            Previous
-          </button>
-          <span className="text-sm text-custom-text">
-            Page {page} of {totalPages}
-          </span>
-          <button
-            disabled={page === totalPages}
-            onClick={() => goToPage(page + 1)}
-            className="px-4 py-2 text-sm font-medium rounded-md bg-custom-blue text-white disabled:opacity-40 hover:bg-custom-blue-hover transition"
-          >
-            Next
-          </button>
-        </div>        
+            <button
+              disabled={page === 1}
+              onClick={() => goToPage(page - 1)}
+              className="px-5 py-2 text-sm font-medium rounded-full bg-custom-blue text-white disabled:opacity-40 hover:bg-custom-blue-hover transition"
+            >
+              Previous
+            </button>
+            <span className="text-sm text-custom-text">
+              Page {page} of {totalPages}
+            </span>
+            <button
+              disabled={page === totalPages}
+              onClick={() => goToPage(page + 1)}
+              className="px-5 py-2 text-sm font-medium rounded-full bg-custom-blue text-white disabled:opacity-40 hover:bg-custom-blue-hover transition"
+            >
+              Next
+            </button>
+          </div>        
         )}
       </div>
 
       {/* 오른쪽 상세보기 사이드바 */}
-      {rightSidebarOpen && (
-        <div
-          onMouseDown={onRightResizerMouseDown}
-          className="w-1 cursor-ew-resize bg-custom-border"
-        />
-      )}
-      <DetailSidebar 
+      <DetailSidebar
         selectedResult={selectedResult}
-        isOpen={rightSidebarOpen}
-        toggleSidebar={() => {
-          console.log('[Sidebar] Toggling right sidebar from', rightSidebarOpen, 'to', !rightSidebarOpen);
-          setRightSidebarOpen(!rightSidebarOpen);
-        }}
-        sidebarWidth={rightWidth}
+        // 사이드바 열림/닫힘 및 너비는 DetailSidebar 내부에서 관리
+        expandedWidth="60rem"    
+        collapsedWidth="3rem"    
       />
     </div>
   );
