@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 
 const DetailSidebar = ({
   selectedResult,
@@ -8,7 +8,16 @@ const DetailSidebar = ({
   collapsedWidth = '2rem',
 }) => {
   // Local state to control sidebar open/closed status
-  const [isOpen, setIsOpen] = React.useState(defaultOpen);
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+
+  // selectedResult prop이 변경될 때 사이드바를 열도록 하는 useEffect 추가
+  useEffect(() => {
+    // selectedResult가 null이 아니고 유효한 객체일 때만 isOpen을 true로 설정
+    if (selectedResult) {
+      setIsOpen(true);
+    }
+    // selectedResult가 변경될 때마다 이 effect를 실행
+  }, [selectedResult]);
 
   // Function to toggle sidebar open/closed state
   const toggleSidebar = () => {
@@ -53,7 +62,7 @@ const DetailSidebar = ({
 
   return (
     <div
-      className={`h-screen overflow-y-auto bg-white shadow-lg border-l border-gray-200 sticky top-0 transition-all duration-300 ease-in-out ${isOpen ? 'rounded-r-2xl' : ''} flex-shrink-0`} // <--- flex-shrink-0 추가
+      className={`h-screen overflow-y-auto bg-white shadow-lg border-l border-gray-200 sticky top-0 transition-all duration-300 ease-in-out ${isOpen ? 'rounded-r-2xl' : ''} flex-shrink-0`}
       style={{
         width: isOpen ? expandedWidth : collapsedWidth,
       }}
