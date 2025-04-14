@@ -4,7 +4,7 @@ import React from 'react';
 
 const SearchResults = ({ results, onResultSelect, onViewDetails }) => {
   if (!results) {
-    return <div className="text-center text-gray-500 mt-4">No results to display.</div>;
+    return <div className="text-center text-custom-text-subtle mt-4">No results to display.</div>;
   }
 
   const pmResults = results.pm || { total: 0, results: [] };
@@ -23,7 +23,7 @@ const SearchResults = ({ results, onResultSelect, onViewDetails }) => {
             {pmResults.results.map((item) => (
               <li
                 key={item.id}
-                className="group p-4 bg-white border border-gray-200 rounded-md shadow-sm hover:shadow-md transition-shadow flex flex-col md:flex-row justify-between gap-4 cursor-pointer"
+                className="group p-4 bg-white border border-custom-border rounded-md shadow-sm hover:shadow-md transition-shadow flex flex-col md:flex-row justify-between gap-4 cursor-pointer"
                 onClick={() => onResultSelect(item)}
               >
                 <div className="flex-1 min-w-0">
@@ -36,7 +36,7 @@ const SearchResults = ({ results, onResultSelect, onViewDetails }) => {
                   <p className="text-sm text-custom-text truncate">
                     Authors: {item.authors.join(", ")}
                   </p>
-                  <p className="text-xs text-gray-500 mt-1 truncate">
+                  <p className="text-xs text-custom-text-subtle mt-1 truncate">
                     PMID: {item.pmid} {item.pmcid && `| PMCID: ${item.pmcid}`}
                   </p>
                 </div>
@@ -55,7 +55,7 @@ const SearchResults = ({ results, onResultSelect, onViewDetails }) => {
             ))}
           </ul>
         ) : (
-          <p className="text-sm text-gray-500">No PubMed results found.</p>
+          <p className="text-sm text-custom-text-subtle">No PubMed results found.</p>
         )}
       </section>
 
@@ -70,7 +70,7 @@ const SearchResults = ({ results, onResultSelect, onViewDetails }) => {
             {ctgResults.results.map((study) => (
               <li
                 key={study.id}
-                className="group p-4 bg-white border border-gray-200 rounded-md shadow-sm hover:shadow-md transition-shadow flex flex-col md:flex-row justify-between gap-4 cursor-pointer"
+                className="group p-4 bg-white border border-custom-border rounded-md shadow-sm hover:shadow-md transition-shadow flex flex-col md:flex-row justify-between gap-4 cursor-pointer"
                 onClick={() => onResultSelect(study)}
               >
                 <div className="flex-1 min-w-0">
@@ -78,7 +78,7 @@ const SearchResults = ({ results, onResultSelect, onViewDetails }) => {
                     {study.title}
                   </h4>
                   <p className="text-sm text-custom-text-subtle mt-1 truncate">Status: {study.status}</p>
-                  <p className="text-xs text-gray-500 truncate">NCT ID: {study.id}</p>
+                  <p className="text-xs text-custom-text-subtle truncate">NCT ID: {study.id}</p>
                   {study.conditions && study.conditions.length > 0 && (
                     <p className="text-sm text-custom-text truncate">
                       Conditions: {study.conditions.join(", ")}
@@ -100,7 +100,7 @@ const SearchResults = ({ results, onResultSelect, onViewDetails }) => {
             ))}
           </ul>
         ) : (
-          <p className="text-sm text-gray-500">No ClinicalTrials.gov results found.</p>
+          <p className="text-sm text-custom-text-subtle">No ClinicalTrials.gov results found.</p>
         )}
       </section>
     </div>

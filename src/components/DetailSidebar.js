@@ -57,12 +57,12 @@ const DetailSidebar = ({ selectedResult, isOpen, toggleSidebar, sidebarWidth }) 
 
   const renderContent = () => {
     if (!selectedResult) {
-      return <p className="text-sm text-gray-500">Select a result to view details.</p>;
+      return <p className="text-sm text-custom-text-subtle">Select a result to view details.</p>;
     }
     if (selectedResult.source === 'PM' || selectedResult.source === 'PMC') {
       const abstract = selectedResult.abstract;
       if (!abstract)
-        return <p className="text-sm text-gray-500">No abstract available.</p>;
+        return <p className="text-sm text-custom-text-subtle">No abstract available.</p>;
       return (
         <div>
         <h4 className="font-bold text-lg mb-2">Abstract</h4>
@@ -77,11 +77,11 @@ const DetailSidebar = ({ selectedResult, isOpen, toggleSidebar, sidebarWidth }) 
     } else if (selectedResult.source === 'CTG') {
       const references = selectedResult.references;
       if (!references || references.length === 0) {
-        return <p className="text-sm text-gray-500">No references available.</p>;
+        return <p className="text-sm text-custom-text-subtle">No references available.</p>;
       }
       return renderCTGContent(references);
     } else {
-      return <p className="text-sm text-gray-500">Details not available.</p>;
+      return <p className="text-sm text-custom-text-subtle">Details not available.</p>;
     }
   };
 

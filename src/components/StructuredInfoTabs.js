@@ -55,7 +55,7 @@ const StructuredInfoTabs = ({ structuredInfo }) => {
             defaultCollapsedDepth={0}
           />
         ) : (
-          <div className="text-gray-500 text-sm">No data for {activeTab}</div>
+          <div className="text-custom-text-subtle text-sm">No data for {activeTab}</div>
         )}
       </div>
     </div>

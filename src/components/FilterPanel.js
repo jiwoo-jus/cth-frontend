@@ -28,7 +28,7 @@ export const FilterPanel = ({ filters, setFilters }) => {
   };
 
   return (
-    <div className="w-full max-w-7xl mx-auto bg-white border border-gray-200 rounded-md shadow-sm p-6 mb-6">
+    <div className="w-full max-w-7xl mx-auto bg-white border border-custom-border rounded-md shadow-sm p-6 mb-6">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold flex items-center gap-2">
           <Filter size={18} className="text-custom-blue-hover" />

@@ -30,7 +30,7 @@ const SearchHistorySidebar = ({ history, onSelect, isOpen, toggleSidebar, sideba
         <div className="mt-2 text-sm break-words">
           <h3 className="font-semibold mb-2">Search History</h3>
           {history.length === 0 ? (
-            <p className="text-gray-500">No history yet.</p>
+            <p className="text-custom-text-subtle">No history yet.</p>
           ) : (
             <ul>
               {history.map((item, index) => (

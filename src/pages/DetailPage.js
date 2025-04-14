@@ -86,8 +86,8 @@ const DetailPage = () => {
       </h1>
 
       {(source === 'PM' || source === 'PMC') && (
-        <div className="bg-gray-50 border border-gray-200 p-4 rounded mb-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-gray-800">{metadata.title}</h2>
+        <div className="bg-custom-bg-soft border border-custom-border p-4 rounded mb-6 shadow-sm">
+          <h2 className="text-lg font-semibold text-custom-text">{metadata.title}</h2>
           <div className="mt-2 space-y-2 text-sm text-custom-text">
             <div className="flex flex-wrap gap-6">
               {metadata.studyType && <p><strong>Study Type:</strong> {metadata.studyType}</p>}
@@ -122,7 +122,7 @@ const DetailPage = () => {
           {structuredInfo ? (
             <StructuredInfoTabs structuredInfo={structuredInfo} />
           ) : (
-            <div className="flex justify-center items-center text-gray-500 h-24">
+            <div className="flex justify-center items-center text-custom-text-subtle h-24">
               Loading structured info...
             </div>
           )}

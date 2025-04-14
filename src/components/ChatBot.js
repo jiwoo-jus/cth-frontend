@@ -67,7 +67,7 @@ const ChatMessage = ({ message, onToggle, onEvidenceClick }) => {
         </button>
         <button
           onClick={handleCopyAll}
-          className="text-gray-500 hover:text-black transition-colors"
+          className="text-custom-text-subtle hover:text-black transition-colors"
         >
           Copy
         </button>
@@ -129,7 +129,7 @@ const ChatBot = ({ paperId, data, onResponse, onEvidenceClick }) => {
         ))}
       </div>
       {loading && (
-        <div className="text-center py-4 text-gray-500 text-sm">Loading response...</div>
+        <div className="text-center py-4 text-custom-text-subtle text-sm">Loading response...</div>
       )}
       <div className="flex gap-2 mt-4">
         <input
@@ -145,7 +145,7 @@ const ChatBot = ({ paperId, data, onResponse, onEvidenceClick }) => {
           onClick={handleAsk}
           disabled={loading}
           className={`text-white font-semibold rounded px-3 py-0.5 text-sm transition-colors ${
-            loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-custom-blue-deep hover:bg-custom-blue-deep'
+            loading ? 'bg-custom-disabled cursor-not-allowed' : 'bg-custom-blue-deep hover:bg-custom-blue-deep'
           }`}
         >
           {loading ? 'Asking...' : 'Ask'}
