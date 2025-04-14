@@ -1,6 +1,7 @@
 import _isEqual from 'lodash/isEqual';
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { StepBack, StepForward } from 'lucide-react'; // Import icons
 
 import { searchClinicalTrials } from '../api/searchApi';
 import DetailSidebar from '../components/DetailSidebar';
@@ -459,28 +460,6 @@ const handleViewDetails = (item) => {
     setSelectedResult(result);
   };
 
-  // 오른쪽 사이드바 리사이징
-  // const onRightResizerMouseDown = (e) => {
-  //   e.preventDefault();
-  //   const startX = e.clientX;
-  //   const startWidth = rightWidth;
-  //   console.log('[Resizer] Right sidebar resize started at', startX, 'with initial width:', startWidth);
-  //   const onMouseMove = (eMove) => {
-  //     const newWidth = startWidth + (startX - eMove.clientX);
-  //     if (newWidth > 300 && newWidth < 1000) {
-  //       console.log('[Resizer] Right sidebar resizing: new width:', newWidth);
-  //       setRightWidth(newWidth);
-  //     }
-  //   };
-  //   const onMouseUp = () => {
-  //     console.log('[Resizer] Right sidebar resize ended.');
-  //     window.removeEventListener("mousemove", onMouseMove);
-  //     window.removeEventListener("mouseup", onMouseUp);
-  //   };
-  //   window.addEventListener("mousemove", onMouseMove);
-  //   window.addEventListener("mouseup", onMouseUp);
-  // };
-
   // 총 페이지 수 (예시: PubMed 결과 기준)
   const totalPages = results && results.pm ? Math.ceil(results.pm.total / pageSize) : 1;
   console.log('[Pagination] Calculated total pages:', totalPages);
@@ -548,9 +527,9 @@ const handleViewDetails = (item) => {
             <button
               disabled={page === 1}
               onClick={() => goToPage(page - 1)}
-              className="px-5 py-2 text-sm font-medium rounded-full bg-custom-blue text-white disabled:opacity-40 hover:bg-custom-blue-hover transition"
+              className="text-sm font-medium rounded-full text-black transition" // Adjusted padding
             >
-              Previous
+              <StepBack size={20} /> {/* Use icon */}
             </button>
             <span className="text-sm text-custom-text">
               Page {page} of {totalPages}
@@ -558,11 +537,11 @@ const handleViewDetails = (item) => {
             <button
               disabled={page === totalPages}
               onClick={() => goToPage(page + 1)}
-              className="px-5 py-2 text-sm font-medium rounded-full bg-custom-blue text-white disabled:opacity-40 hover:bg-custom-blue-hover transition"
+              className="text-sm font-medium rounded-full text-black transition" // Adjusted padding
             >
-              Next
+              <StepForward size={20} /> {/* Use icon */}
             </button>
-          </div>        
+          </div>
         )}
       </div>
 
