@@ -139,12 +139,12 @@ const ChatBot = ({ paperId, data, onResponse, onEvidenceClick }) => {
           onChange={(e) => setQuestion(e.target.value)}
           onKeyPress={(e) => e.key === 'Enter' && handleAsk()}
           disabled={loading}
-          className="flex-1 border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="flex-1 border border-gray-300 rounded px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <button
           onClick={handleAsk}
           disabled={loading}
-          className={`text-white font-semibold rounded px-3 py-1 text-sm transition-colors ${
+          className={`text-white font-semibold rounded px-3 py-0.5 text-sm transition-colors ${
             loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-800 hover:bg-blue-900'
           }`}
         >
