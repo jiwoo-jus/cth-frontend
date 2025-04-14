@@ -4,8 +4,8 @@ import React from 'react';
 const DetailSidebar = ({
   selectedResult,
   defaultOpen = false,
-  expandedWidth = '60rem',
-  collapsedWidth = '3rem',
+  expandedWidth = '30%',
+  collapsedWidth = '2rem',
 }) => {
   // Local state to control sidebar open/closed status
   const [isOpen, setIsOpen] = React.useState(defaultOpen);
@@ -53,7 +53,7 @@ const DetailSidebar = ({
 
   return (
     <div
-      className={`h-screen overflow-y-auto bg-white shadow-lg border-l border-gray-200 sticky top-0 transition-all duration-300 ease-in-out ${isOpen ? 'rounded-r-2xl' : ''}`}
+      className={`h-screen overflow-y-auto bg-white shadow-lg border-l border-gray-200 sticky top-0 transition-all duration-300 ease-in-out ${isOpen ? 'rounded-r-2xl' : ''} flex-shrink-0`} // <--- flex-shrink-0 추가
       style={{
         width: isOpen ? expandedWidth : collapsedWidth,
       }}
