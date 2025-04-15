@@ -29,7 +29,7 @@ const StructuredInfoTabs = ({ structuredInfo }) => {
   return (
     <div className="w-full">
       {/* 탭 헤더 (scrollable if overflow) */}
-      <div className="flex flex-wrap gap-2 overflow-x-auto border-b mb-4 pb-1">
+      <div className="flex flex-wrap gap-1 overflow-x-auto border-b mb-4 pb-1">
         {TAB_KEYS.map((key) => (
           <button
             key={key}

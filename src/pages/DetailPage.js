@@ -1,3 +1,4 @@
+// src/pages/DetailPage.js
 import queryString from 'query-string';
 import React, { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -32,8 +33,8 @@ const DetailPage = () => {
   useEffect(() => {
     if ((source === 'PM' || source === 'PMC') && pmcid) {
       fetch(`${BASE_URL}/api/paper/pmc_full_text_html?pmcid=${pmcid}`)
-        .then(res => res.text())
-        .then(htmlString => {
+        .then((res) => res.text())
+        .then((htmlString) => {
           const parser = new DOMParser();
           const doc = parser.parseFromString(htmlString, 'text/html');
           const article = doc.querySelector("#main-content > article");
@@ -52,18 +53,16 @@ const DetailPage = () => {
         })
         .catch(console.error);
     }
-
     if ((source === 'PM' || source === 'PMC') && pmcid) {
       fetch(`${BASE_URL}/api/paper/structured_info?pmcid=${pmcid}`)
-        .then(res => res.json())
-        .then(data => setStructuredInfo(data.structured_info))
+        .then((res) => res.json())
+        .then((data) => setStructuredInfo(data.structured_info))
         .catch(console.error);
     }
-
     if (source === 'CTG' && nctId) {
       fetch(`${BASE_URL}/api/paper/ctg_detail?nctId=${nctId}`)
-        .then(res => res.json())
-        .then(data => {
+        .then((res) => res.json())
+        .then((data) => {
           setStructuredInfo(data.structured_info);
           setFullText(data.full_text || '');
           if (data.full_text) setFullTextExpanded(true);
@@ -77,63 +76,86 @@ const DetailPage = () => {
   };
 
   return (
-    <div className="px-4 py-6 max-w-7xl mx-auto">
+    <div className="px-6 py-8 max-w-7xl mx-auto">
       <h1
-        className="text-3xl font-bold text-custom-blue-deep tracking-tight text-center cursor-pointer mb-6"
+        className="text-3xl font-bold text-black tracking-tight text-center cursor-pointer mb-6 hover:opacity-80 transition" // Adjusted: text-4xl -> text-3xl, font-extrabold -> font-semibold
         onClick={() => navigate(-1)}
       >
         Clinical Trials Hub
       </h1>
 
+      {/* 메타데이터 카드 */}
       {(source === 'PM' || source === 'PMC') && (
-        <div className="bg-custom-bg-soft border border-custom-border p-4 rounded mb-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-custom-text">{metadata.title}</h2>
-          <div className="mt-2 space-y-2 text-sm text-custom-text">
-            <div className="flex flex-wrap gap-6">
-              {metadata.studyType && <p><strong>Study Type:</strong> {metadata.studyType}</p>}
+        <div className="bg-custom-bg-soft border border-custom-border p-5 rounded-2xl shadow-lg mb-8">
+          <h2 className="text-lg font-semibold text-custom-blue-deep mb-2"> {/* Adjusted: text-2xl -> text-xl */}
+            {metadata.title}
+          </h2>
+          <div className="mt-2 space-y-2 text-sm text-custom-text"> {/* Adjusted: text-base -> text-sm */}
+            {metadata.authors?.length > 0 && (
+              <p className="text-sm text-custom-text-subtle pt-1"> {/* Adjusted: text-base -> text-sm, added pt-1 */}
+                {metadata.authors.join(', ')}
+              </p>
+            )}
+            <div className="flex flex-wrap gap-x-8 gap-y-1"> {/* Adjusted gap */}
+              {metadata.studyType && (
+                <p>
+                  <strong>Study Type:</strong> {metadata.studyType}
+                </p>
+              )}
               {metadata.pubDate && (
-                <p>{metadata.journal && <span>{metadata.journal}, </span>}{metadata.pubDate} {metadata.doi}</p>
+                <p>
+                  {metadata.pubDate} {metadata.doi && `(${metadata.doi})`}  
+                  {metadata.journal && <span>{metadata.journal}, </span>}
+                </p>
               )}
             </div>
-            <div className="flex flex-wrap gap-4">
+            <div className="flex flex-wrap gap-x-6 gap-y-1"> {/* Adjusted gap */}
               {metadata.pmid && <p>PMID: {metadata.pmid}</p>}
               {metadata.pmcid && <p>PMCID: {metadata.pmcid}</p>}
               {metadata.nctId && <p>NCT ID: {metadata.nctId}</p>}
             </div>
-            {metadata.authors?.length > 0 && (
-              <p className="text-sm text-custom-text-subtle">{metadata.authors.join(', ')}</p>
-            )}
+            
           </div>
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-10 gap-4 mb-6">
-        <div className="md:col-span-4 border rounded-md shadow-sm p-4">
-          <h2 className="text-lg font-semibold text-custom-blue-deep border-b pb-1 mb-3">ChatBot</h2>
+      {/* 챗봇 & 구조화 정보 영역 (4:6 그리드 레이아웃) */}
+      <div className="grid grid-cols-1 md:grid-cols-10 gap-6 mb-8">
+        <div className="md:col-span-4 border border-custom-border rounded-2xl shadow-lg p-4 bg-white">
+          <h2 className="text-xl font-semibold text-custom-blue-deep border-b border-custom-border pb-2 mb-2"> {/* Adjusted: text-2xl -> text-xl, added border color */}
+            ChatBot
+          </h2>
           <ChatBot
             paperId={paperId}
             data={fullText}
-            onResponse={({ evidence }) => console.log('Chat response evidence:', evidence)}
+            onResponse={({ evidence }) =>
+              console.log('Chat response evidence:', evidence)
+            }
             onEvidenceClick={scrollToEvidence}
           />
         </div>
-        <div className="md:col-span-6 border rounded-md shadow-sm p-4">
-          <h2 className="text-lg font-semibold text-custom-blue-deep border-b pb-1 mb-3">Structured Info</h2>
+        <div className="md:col-span-6 border border-custom-border rounded-2xl shadow-lg p-4 bg-white">
+          <h2 className="text-xl font-semibold text-custom-blue-deep border-b border-custom-border pb-2 mb-2"> {/* Adjusted: text-2xl -> text-xl, added border color */}
+            Structured Info
+          </h2>
           {structuredInfo ? (
             <StructuredInfoTabs structuredInfo={structuredInfo} />
           ) : (
-            <div className="flex justify-center items-center text-custom-text-subtle h-24">
+            <div className="flex justify-center items-center text-custom-text-subtle h-28 text-sm"> {/* Adjusted: text-base -> text-sm */}
               Loading structured info...
             </div>
           )}
         </div>
       </div>
 
-      <div className="border rounded-md shadow-sm p-4 mb-6">
+      {/* References / Full Text 영역 */}
+      <div className="border border-custom-border rounded-2xl shadow-lg p-4 mb-8 bg-white">
         {source === 'CTG' ? (
           <>
-            <h2 className="text-lg font-semibold text-custom-blue-deep border-b pb-1 mb-3">References</h2>
-            <div className="space-y-2 text-sm">
+            <h2 className="text-xl font-semibold text-custom-blue-deep border-b border-custom-border pb-2 mb-4"> {/* Adjusted: text-2xl -> text-xl, added border color */}
+              References
+            </h2>
+            <div className="space-y-3 text-sm"> {/* Adjusted: text-base -> text-sm */}
               {structuredInfo?.references?.length > 0 ? (
                 structuredInfo.references.map((ref, index) => (
                   <div key={index}>
@@ -142,7 +164,7 @@ const DetailPage = () => {
                         href={`https://pubmed.ncbi.nlm.nih.gov/${ref.pmid}/`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-custom-blue-hover underline"
+                        className="text-custom-blue hover:underline" // Use custom-blue for consistency
                       >
                         {ref.citation}
                       </a>
@@ -152,17 +174,19 @@ const DetailPage = () => {
                   </div>
                 ))
               ) : (
-                <p>No references available.</p>
+                <p className="text-custom-text-subtle">No references available.</p>
               )}
             </div>
           </>
         ) : (
           <>
-            <div className="flex justify-between items-center mb-3">
-              <h2 className="text-lg font-semibold text-custom-blue-deep border-b pb-1">Full Text</h2>
+            <div className="flex justify-between items-center mb-2">
+              <h2 className="text-xl font-semibold text-custom-blue-deep border-b border-custom-border pb-2"> {/* Adjusted: text-2xl -> text-xl, added border color */}
+                Full Text
+              </h2>
               <button
-                onClick={() => setFullTextExpanded(prev => !prev)}
-                className="bg-custom-blue-deep text-white font-semibold text-sm px-4 py-1 rounded hover:bg-custom-blue-deep transition"
+                onClick={() => setFullTextExpanded((prev) => !prev)}
+                className="bg-custom-blue-deep text-white font-semibold text-xs px-4 py-1.5 rounded-full hover:bg-custom-blue-hover transition-colors" // Adjusted: size, padding, font-weight, color
               >
                 {fullTextExpanded ? 'Collapse ▲' : 'Expand ▼'}
               </button>
