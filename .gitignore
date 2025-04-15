@@ -26,3 +26,7 @@ yarn-error.log*
 
 # Temporary files
 *copy*.*
+temp*
+jiwoo-resources
+
+.gitignore
