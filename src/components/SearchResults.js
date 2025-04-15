@@ -1,4 +1,4 @@
-import { Eye, FileText } from 'lucide-react';
+import { Eye } from 'lucide-react';
 import PropTypes from 'prop-types';
 import React from 'react';
 
@@ -19,8 +19,7 @@ const SearchResults = ({ results, onResultSelect, onViewDetails }) => {
       {/* PubMed Results */}
       <section>
         <h3 className="text-lg font-semibold border-b border-custom-border pb-1 mb-4 flex items-center gap-2">
-          <FileText size={18} className="text-custom-blue-deep" />
-          PubMed Results ({pmResults.total})
+          PubMed Results {pmResults.total > 0 && `(${pmResults.total})`}
         </h3>
         {pmResults.results.length > 0 ? (
           <ul className="space-y-3">
@@ -92,8 +91,7 @@ const SearchResults = ({ results, onResultSelect, onViewDetails }) => {
       {/* ClinicalTrials.gov Results */}
       <section>
         <h3 className="text-lg font-semibold border-b border-custom-border pb-1 mb-4 flex items-center gap-2">
-          <FileText size={18} className="text-green-700" />
-          ClinicalTrials.gov Results ({ctgResults.total})
+          ClinicalTrials.gov Results {ctgResults.total > 0 && `(${ctgResults.total})`}
         </h3>
         {ctgResults.results.length > 0 ? (
           <ul className="space-y-3">
