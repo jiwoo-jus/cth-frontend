@@ -2,6 +2,28 @@ import PropTypes from 'prop-types';
 import React, { useEffect, useState } from 'react';
 import { PanelLeft, PanelRight } from 'lucide-react'; // Import icons
 
+// Helper function to detect and linkify URLs
+const linkify = (text) => {
+  if (!text) return text;
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  return text.split(urlRegex).map((part, index) => {
+    if (part.match(urlRegex)) {
+      return (
+        <a
+          key={index}
+          href={part}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-600 hover:underline" // Style as needed
+        >
+          {part}
+        </a>
+      );
+    }
+    return part;
+  });
+};
+
 const DetailSidebar = ({
   selectedResult,
   defaultOpen = false,
@@ -42,8 +64,8 @@ const DetailSidebar = ({
             <div key={key} className="mb-2">
               {/* Unified emphasis style: text-base font-semibold */}
               <span className="font-semibold block text-base mb-1">{key}</span>
-              {/* Unified content style: text-sm */}
-              <span className="block text-sm">{value}</span>
+              {/* Unified content style: text-sm, apply linkify */}
+              <span className="block text-sm">{linkify(value)}</span>
             </div>
           ))}
         </div>
@@ -92,8 +114,8 @@ const DetailSidebar = ({
               {/* Render each reference within the group */}
               {refs.map((ref, index) => (
                 <div key={ref.pmid || `${groupName}-${index}`} className="mb-2 border-b pb-2 last:border-b-0">
-                  {/* Unified content style: text-sm */}
-                  {ref.citation && <p className="text-sm mb-1">{ref.citation}</p>}
+                  {/* Unified content style: text-sm, apply linkify */}
+                  {ref.citation && <p className="text-sm mb-1">{linkify(ref.citation)}</p>}
                   {ref.pmid && (
                     <a
                       href={`https://pubmed.ncbi.nlm.nih.gov/${ref.pmid}`}
