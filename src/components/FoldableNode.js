@@ -1,14 +1,12 @@
 import PropTypes from 'prop-types';
 import React, { useState } from 'react';
+import { ChevronDown, ChevronRight } from 'lucide-react'; 
+// ※ lucide-react 패키지가 없다면, 
+// <svg>를 직접 넣거나 설치: `npm install lucide-react`
+// 혹은 ▼▶ 문자로 대체해도 됩니다.
 
 /**
  * FoldableNode: JSON 구조(오브젝트/배열/프리미티브)를 폴더블 트리로 표시
- * 
- * 주요 수정 사항:
- * 1) defaultCollapsedDepth를 두어서, 특정 depth 이상은 접힌 상태로 시작하도록 함.
- * 2) 배열일 때의 인덱스 표시(최소화) 및 스타일을 조정해 공간 낭비를 줄임.
- *    - isArrayItem, arrayIndex 프로퍼티로 제어
- * 3) nodeKey가 빈 문자열("")일 경우, 상위 레이블을 숨길 수 있도록 처리 (루트 노드 스킵할 때 활용).
  */
 
 const FoldableNode = ({
@@ -19,44 +17,51 @@ const FoldableNode = ({
   isArrayItem,
   arrayIndex,
 }) => {
-  // depth < defaultCollapsedDepth 이면 초기에 펼쳐짐(expanded) 상태로
-  // depth >= defaultCollapsedDepth 이면 접힘(!expanded) 상태로.
-
-  // depth 계산과 접힘 여부 설정
+  // 초기 접힘/펼침 설정
   const isRootWrapper = nodeKey === "";
   const [expanded, setExpanded] = useState(isRootWrapper || depth < defaultCollapsedDepth);
-
 
   const toggleExpand = (e) => {
     e.stopPropagation();
     setExpanded(!expanded);
   };
 
-  // 들여쓰기 (depth*12px)와 폰트 사이즈 축소
+  // 들여쓰기(12px * depth)
   const indentStyle = {
-    marginLeft: depth * 12, // 16px에서 12px로 줄임
-    padding: '3px 0', // 4px에서 2px로 줄임
-    fontSize: '0.875rem', // text-sm에 해당하는 크기
-    lineHeight: '1.25rem',
+    marginLeft: depth * 12,
+    transition: 'all 0.2s ease-in-out', // 부드러운 전환
+  };
+
+  // "array item" 불렛포인트 스타일
+  const bulletStyle = {
+    marginRight: '6px',
+    fontSize: '0.6rem',
+    fontWeight: 'bold',
+    color: '#555555'
   };
 
   // 객체 또는 배열
   if (typeof data === 'object' && data !== null) {
-    // 배열인 경우
+    // [1] 배열인 경우
     if (Array.isArray(data)) {
       return (
-        <div style={indentStyle}>
-          {/* nodeKey가 빈 문자열이 아니고, 배열의 "부모" 노드라면 토글 UI를 표시 */}
+        <div className="my-1 text-sm" style={indentStyle}> {/* text-sm 추가 */}
+          {/* 노드 키가 있고, 배열의 "부모"라면 펼침/접힘 토글을 표시 */}
           {nodeKey && !isArrayItem && (
-            <div
+            <div 
+              className="flex items-center gap-1 cursor-pointer text-custom-blue-deep font-semibold hover:text-custom-blue" // text-sm 제거 (부모에서 적용)
               onClick={toggleExpand}
-              style={{ cursor: 'pointer', fontWeight: 'bold' }}
             >
-              <span style={{ color: '#000000', fontSize: '0.75rem' }}>{expanded ? '▼' : '▶'}</span> {nodeKey}
+              {expanded ? (
+                <ChevronDown size={14} className="inline-block" />
+              ) : (
+                <ChevronRight size={14} className="inline-block" />
+              )}
+              <span>{nodeKey}</span>
             </div>
           )}
           {expanded && (
-            <div style={{ marginLeft: (nodeKey && !isArrayItem) ? 12 : 0 }}> {/* 16px에서 12px로 줄임 */}
+            <div style={{ marginLeft: (nodeKey && !isArrayItem) ? 12 : 0 }}>
               {data.map((el, idx) => (
                 <FoldableNode
                   key={idx}
@@ -73,21 +78,27 @@ const FoldableNode = ({
         </div>
       );
     } else {
-      // 일반 객체인 경우
+      // [2] 일반 객체인 경우
       const entries = Object.entries(data);
-      // nodeKey가 ""(빈 문자열)이면 상단 레이블 없이 바로 children만 표시
+
       return (
-        <div style={indentStyle}>
+        <div className="my-1 text-sm" style={indentStyle}> {/* text-sm 추가 */}
+          {/* 루트 노드가 아니라면 토글 UI를 표시 */}
           {nodeKey && (
             <div
+              className="flex items-center gap-1 cursor-pointer text-custom-blue-deep font-semibold hover:text-custom-blue" // text-sm 제거 (부모에서 적용)
               onClick={toggleExpand}
-              style={{ cursor: 'pointer', fontWeight: 'bold' }}
             >
-              <span style={{ color: '#000000', fontSize: '0.75rem' }}>{expanded ? '▼' : '▶'}</span> {nodeKey}
+              {expanded ? (
+                <ChevronDown size={14} className="inline-block" />
+              ) : (
+                <ChevronRight size={14} className="inline-block" />
+              )}
+              <span>{nodeKey}</span>
             </div>
           )}
           {expanded && (
-            <div style={{ marginLeft: nodeKey ? 12 : 0 }}> {/* 16px에서 12px로 줄임 */}
+            <div className="pl-3 border-l border-gray-200" style={{ marginLeft: nodeKey ? 4 : 0 }}>
               {entries.map(([key, value]) => (
                 <FoldableNode
                   key={key}
@@ -103,31 +114,25 @@ const FoldableNode = ({
       );
     }
   } else {
-    // 기본 자료형(문자열/숫자/불린/null)
+    // [3] 기본 자료형(문자열, 숫자, 불린, null)
     return (
-      <div style={indentStyle}>
+      <div className="my-1 text-sm" style={indentStyle}> {/* text-sm 추가 */}
         {isArrayItem ? (
-          // 배열 항목일 때는 불렛포인트로 표시
-          <>
-            <span style={{ 
-              color: '#000000', 
-              marginRight: '6px',
-              fontSize: '0.4rem',  // 불렛포인트 크기 증가
-              fontWeight: 'bold' // 더 두껍게 표시
-            }}>
-              ●
-            </span>
+          <div> {/* flex 제거됨 */}
+            <span style={bulletStyle}>•</span>
+            {/* 배열 인덱스와 노드 키가 다를 경우에만 "key:" 표시 */}
             {nodeKey !== String(arrayIndex) && (
-              <>
-                <strong>{nodeKey}:</strong>{' '}
-              </>
+              <strong className="text-custom-blue-deep mr-1 font-semibold">{nodeKey}:</strong>
             )}
-            <span>{String(data)}</span>
-          </>
+            {/* inline-block 제거, break-all 유지 */}
+            <span className="text-custom-text break-all">{String(data)}</span> 
+          </div>
         ) : (
-          <>
-            <strong>{nodeKey}:</strong> <span>{String(data)}</span>
-          </>
+          <div> {/* flex 제거됨 */}
+            <strong className="text-custom-blue-deep mr-1 font-semibold">{nodeKey}:</strong> {/* font-semibold 추가 */}
+            {/* inline-block 제거, break-all 유지 */}
+            <span className="text-custom-text break-all">{String(data)}</span> 
+          </div>
         )}
       </div>
     );
@@ -138,9 +143,9 @@ FoldableNode.propTypes = {
   nodeKey: PropTypes.string.isRequired,
   data: PropTypes.any,
   depth: PropTypes.number,
-  defaultCollapsedDepth: PropTypes.number, // 이 depth 이상이면 접힘
-  isArrayItem: PropTypes.bool,            // 배열 내부 아이템 여부
-  arrayIndex: PropTypes.number,           // 배열 인덱스
+  defaultCollapsedDepth: PropTypes.number, 
+  isArrayItem: PropTypes.bool,            
+  arrayIndex: PropTypes.number,           
 };
 
 FoldableNode.defaultProps = {
