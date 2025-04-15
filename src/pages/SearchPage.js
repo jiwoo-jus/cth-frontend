@@ -305,12 +305,14 @@ const handleViewDetails = (item) => {
     title: item.title,
     pmid: item.pmid || null,
     pmcid: item.pmcid || null,
-    nctId: item.nctId || null,
+    nctId: item.id || null, // Use item.id for nctId when source is CTG
     doi: item.doi || null,
     studyType: item.studyType || null,
     authors: item.authors || [],
     journal: item.journal || null,
     pubDate: item.pubDate || item.date || null,
+    // Pass structured_info for CTG items
+    structured_info: item.source === 'CTG' ? item.structured_info : null,
     // ... 추가로 필요한 것들 (journal명 등)
   };
 
@@ -333,6 +335,7 @@ const handleViewDetails = (item) => {
     });
   } else {
     // PM or PMC
+    // Pass pmcid correctly for PM/PMC sources
     navigate(`/detail?paperId=${item.id}&pmcid=${item.pmcid}&source=${item.source}`, {
       state: {
         searchState: stateToPass,
