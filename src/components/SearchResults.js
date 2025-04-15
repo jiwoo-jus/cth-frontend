@@ -41,7 +41,31 @@ const SearchResults = ({ results, onResultSelect, onViewDetails }) => {
                   {item.pubDate} &middot; {item.journal}
                   </p>
                   <p className="text-xs text-custom-text-subtle mt-1 truncate">
-                    PMID: {item.pmid} {item.pmcid && `| PMCID: ${item.pmcid}`}
+                    <a
+                      href={`https://pubmed.ncbi.nlm.nih.gov/${item.pmid}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      // Use custom-blue for PubMed links
+                      className="text-custom-blue hover:underline"
+                      onClick={(e) => e.stopPropagation()} // Prevent triggering onResultSelect
+                    >
+                      {item.pmid}
+                    </a>
+                    {item.pmcid && (
+                      <>
+                        <span className="mx-1">|</span>
+                        <a
+                          href={`https://pmc.ncbi.nlm.nih.gov/articles/${item.pmcid}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          // Use custom-blue for PubMed links
+                          className="text-custom-blue hover:underline"
+                          onClick={(e) => e.stopPropagation()} // Prevent triggering onResultSelect
+                        >
+                          {item.pmcid}
+                        </a>
+                      </>
+                    )}
                   </p>
                 </div>
                 <div className="shrink-0 self-start md:self-center">
@@ -80,14 +104,23 @@ const SearchResults = ({ results, onResultSelect, onViewDetails }) => {
                 className="group p-4 bg-white border border-custom-border rounded-2xl shadow-sm hover:shadow-md transition-shadow flex flex-col md:flex-row justify-between gap-4 cursor-pointer"
               >
                 <div className="flex-1 min-w-0">
-                  <h4 className="font-semibold text-green-700 group-hover:underline text-base">
+                  <h4 className="font-semibold text-green-600 group-hover:underline text-base">
                     {study.title}
                   </h4>
                   <p className="text-sm text-custom-text-subtle mt-1 truncate">
                     Status: {study.status}
                   </p>
                   <p className="text-xs text-custom-text-subtle truncate">
-                    NCT ID: {study.id}
+                    <a
+                      href={`https://clinicaltrials.gov/study/${study.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      // Use green-600 for CTG links
+                      className="text-green-600 hover:underline"
+                      onClick={(e) => e.stopPropagation()} // Prevent triggering onResultSelect
+                    >
+                      {study.id}
+                    </a>
                   </p>
                   {study.conditions && study.conditions.length > 0 && (
                     <p className="text-sm text-custom-text truncate">
