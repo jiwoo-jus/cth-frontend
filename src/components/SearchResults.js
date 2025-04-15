@@ -19,7 +19,7 @@ const SearchResults = ({ results, onResultSelect, onViewDetails }) => {
       {/* PubMed Results */}
       <section>
         <h3 className="text-lg font-semibold border-b border-custom-border pb-1 mb-4 flex items-center gap-2">
-          <FileText size={18} className="text-custom-blue" />
+          <FileText size={18} className="text-custom-blue-deep" />
           PubMed Results ({pmResults.total})
         </h3>
         {pmResults.results.length > 0 ? (
