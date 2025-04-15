@@ -35,10 +35,10 @@ const SearchResults = ({ results, onResultSelect, onViewDetails }) => {
                     {item.title}
                   </h4>
                   <p className="text-sm text-custom-text-subtle mt-1 truncate">
-                    {item.journal} &middot; {item.pubDate}
+                    {item.authors.join(", ")}
                   </p>
                   <p className="text-sm text-custom-text truncate">
-                    Authors: {item.authors.join(", ")}
+                  {item.pubDate} &middot; {item.journal}
                   </p>
                   <p className="text-xs text-custom-text-subtle mt-1 truncate">
                     PMID: {item.pmid} {item.pmcid && `| PMCID: ${item.pmcid}`}

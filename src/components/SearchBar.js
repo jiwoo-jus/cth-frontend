@@ -5,9 +5,10 @@ import PropTypes from 'prop-types';
 export const SearchBar = ({ query, setQuery, onSubmit }) => {
   // 순환할 플레이스홀더 문구들
   const placeholderTexts = [
-    "Search clinical terms, conditions, or interventions...",
-    "Explore medical research and clinical trials...",
-    "Find information on treatments and studies..."
+    "Low-sodium diet for the management of hypertension",
+    "Randomized controlled trial of insulin treatment for type 2 diabetes",
+    "Treatment strategies for Alzheimer's disease in geriatric populations",
+    "Effect of methylphenidate on attention in children with ADHD",
   ];
 
   const [currentIdx, setCurrentIdx] = useState(0);

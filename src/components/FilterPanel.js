@@ -7,6 +7,13 @@ const sourceOptions = [
   { label: "ClinicalTrials.gov", value: "CTG" }
 ];
 
+// Add a mapping for field names to display labels
+const fieldLabels = {
+  cond: 'Condition',
+  intr: 'Intervention',
+  other_term: 'Other Terms'
+};
+
 export const FilterPanel = ({ filters, setFilters }) => {
   const [showMore, setShowMore] = React.useState(false);
 
@@ -45,7 +52,8 @@ export const FilterPanel = ({ filters, setFilters }) => {
         {['cond', 'intr', 'other_term'].map((field, idx) => (
           <div key={idx}>
             <label className="block text-sm font-medium text-primary-100 capitalize">
-              {field.replace('_', ' ')}
+              {/* Use the mapping here */}
+              {fieldLabels[field] || field.replace('_', ' ')}
             </label>
             <input
               type="text"
