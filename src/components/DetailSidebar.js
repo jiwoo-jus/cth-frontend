@@ -2,26 +2,60 @@ import PropTypes from 'prop-types';
 import React, { useEffect, useState } from 'react';
 import { PanelLeft, PanelRight } from 'lucide-react'; // Import icons
 
-// Helper function to detect and linkify URLs
+// Helper function to detect and linkify URLs and NCT IDs
 const linkify = (text) => {
   if (!text) return text;
-  const urlRegex = /(https?:\/\/[^\s]+)/g;
-  return text.split(urlRegex).map((part, index) => {
-    if (part.match(urlRegex)) {
+
+  // Regex to find URLs or NCT IDs
+  // Group 1: URLs (https?://...)
+  // Group 2: NCT IDs (NCT followed by digits)
+  const combinedRegex = /(https?:\/\/[^\s]+)|(NCT\d+)/g;
+  const urlPattern = /^https?:\/\//; // Simple check if a match is a URL
+  const nctPattern = /^NCT\d+$/;    // Simple check if a match is an NCT ID
+
+  // Split the text by the regex. Capturing groups ensure delimiters are kept.
+  const parts = text.split(combinedRegex);
+
+  return parts.map((part, index) => {
+    // Ignore empty strings that can result from split
+    if (!part) return null;
+
+    // Check if the part is a URL
+    if (part.match(urlPattern)) {
       return (
         <a
-          key={index}
+          key={`url-${index}`}
           href={part}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-blue-600 hover:underline" // Style as needed
+          className="text-blue-600 hover:underline"
         >
           {part}
         </a>
       );
     }
-    return part;
-  });
+    // Check if the part is an NCT ID
+    else if (part.match(nctPattern)) {
+      const nctid = part;
+      return (
+        <a
+          key={`nct-${index}`}
+          href={`https://clinicaltrials.gov/study/${nctid}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-600 hover:underline"
+        >
+          {nctid}
+        </a>
+      );
+    }
+    // Otherwise, it's a plain text segment
+    else {
+      // Return the plain text part. Use React Fragment for keys if needed,
+      // but simple string return is often sufficient here.
+      return part;
+    }
+  }).filter(Boolean); // Filter out any null parts created by empty strings
 };
 
 const DetailSidebar = ({
