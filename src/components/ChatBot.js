@@ -1,52 +1,60 @@
+// src/components/ChatBot.js
 import PropTypes from 'prop-types';
 import React, { useState } from 'react';
-
 import api from '../api';
+import { SendHorizontal, Clipboard, ClipboardCheck, ChevronsDownUp, ChevronsUpDown } from 'lucide-react'; // Import new icons
 
 function copyToClipboard(text) {
-  navigator.clipboard.writeText(text)
-    .then(() => console.log("Copied:", text))
-    .catch(err => console.error("Copy failed", err));
+  return navigator.clipboard.writeText(text); // Return the promise
 }
 
 const ChatMessage = ({ message, onToggle, onEvidenceClick }) => {
+  const [isCopied, setIsCopied] = useState(false);
+
   const handleCopyAll = () => {
     const allText = `Q: ${message.question}\nA: ${message.answer}${
       message.evidence?.length ? `\nEvidence:\n${message.evidence.join('\n')}` : ''}`;
-    copyToClipboard(allText);
+    copyToClipboard(allText)
+      .then(() => {
+        console.log("Copied:", allText);
+        setIsCopied(true);
+        // Reset icon after a short delay
+        setTimeout(() => setIsCopied(false), 1500);
+      })
+      .catch(err => console.error("Copy failed", err));
   };
 
   return (
-    <div className="mb-3 border border-custom-border rounded p-3 text-sm">
+    <div className="mb-4 bg-white border border-custom-border rounded-2xl shadow-sm p-4 text-sm group"> {/* Add group class */}
       {/* Question */}
-      <div className="flex items-start gap-2 mb-2">
-        <strong>Q:</strong>
-        <div className="flex-1 whitespace-pre-wrap">{message.question}</div>
+      <div className="flex items-start gap-2 mb-3">
+        <strong className="text-custom-blue-deep">Q:</strong>
+        <div className="flex-1 whitespace-pre-wrap text-custom-text">{message.question}</div>
       </div>
 
       {/* Answer */}
       {message.expanded ? (
         <>
-          <div className="flex items-start gap-2 mb-2">
-            <strong>A:</strong>
-            <div className="flex-1 whitespace-pre-wrap">{message.answer}</div>
+          <div className="flex items-start gap-2 mb-3">
+            <strong className="text-custom-blue-deep">A:</strong>
+            <div className="flex-1 whitespace-pre-wrap text-custom-text">{message.answer}</div>
           </div>
 
           {/* Evidence */}
           {message.evidence?.length > 0 && (
-            <div className="mb-2">
-              <strong className="block mb-1">Evidence:</strong>
+            <div className="mb-3">
+              <strong className="block mb-1 text-custom-blue-deep">Evidence:</strong>
               <ul className="list-none space-y-2 pl-0">
                 {message.evidence.map((evi, idx) => (
                   <li key={idx} className="flex items-start gap-2">
                     <button
-                      className="text-custom-text hover:text-custom-blue-hover text-xs mt-0.5"
+                      className="text-custom-blue hover:text-custom-blue-hover text-xs mt-0.5"
                       onClick={() => onEvidenceClick(evi)}
                       title="Highlight in full text"
                     >
                       🔍
                     </button>
-                    <span className="whitespace-pre-wrap leading-snug text-sm">{evi}</span>
+                    <span className="whitespace-pre-wrap leading-snug text-sm text-custom-text">{evi}</span>
                   </li>
                 ))}
               </ul>
@@ -57,19 +65,21 @@ const ChatMessage = ({ message, onToggle, onEvidenceClick }) => {
         <div className="italic text-custom-text-subtle">(Answer collapsed)</div>
       )}
 
-      {/* Buttons */}
-      <div className="flex flex-wrap gap-2 mt-3 text-xs">
+      {/* Action Buttons */}
+      <div className="flex flex-wrap items-center gap-2 mt-4"> {/* Reduced gap from gap-3 to gap-2 */}
         <button
           onClick={onToggle}
-          className="px-2 py-1 border border-custom-blue text-custom-blue hover:bg-custom-blue hover:text-white rounded transition-colors font-medium"
+          className="p-1.5 text-custom-blue-deep rounded-full hover:bg-custom-blue-lightest transition-colors" // Adjusted padding, removed background/border, made round
+          title={message.expanded ? 'Collapse' : 'Expand'} // Add title
         >
-          {message.expanded ? 'Collapse ▲' : 'Expand ▼'}
+          {message.expanded ? <ChevronsDownUp size={16} strokeWidth={2.5}/> : <ChevronsUpDown size={16} strokeWidth={2.5}/>} {/* Use icons */}
         </button>
         <button
           onClick={handleCopyAll}
-          className="text-custom-text-subtle hover:text-black transition-colors"
+          className="p-1.5 text-custom-blue-deep rounded-full hover:bg-custom-blue-lightest transition-colors" // Changed text color, removed opacity classes, adjusted padding, added hover effect
+          title="Copy Q&A" // Add title for accessibility
         >
-          Copy
+          {isCopied ? <ClipboardCheck size={16} strokeWidth={2.5} className="block" /> : <Clipboard size={16} strokeWidth={2.5} className="block" />} {/* Added strokeWidth */}
         </button>
       </div>
     </div>
@@ -98,7 +108,7 @@ const ChatBot = ({ paperId, data, onResponse, onEvidenceClick }) => {
         expanded: true,
       };
 
-      setConversation([...conversation, newMessage]);
+      setConversation(prev => [...prev, newMessage]);
       setQuestion('');
       if (onResponse) onResponse(response.data);
     } catch (error) {
@@ -129,9 +139,11 @@ const ChatBot = ({ paperId, data, onResponse, onEvidenceClick }) => {
         ))}
       </div>
       {loading && (
-        <div className="text-center py-4 text-custom-text-subtle text-sm">Loading response...</div>
+        <div className="text-center py-4 text-custom-text-subtle text-sm">
+          Loading response...
+        </div>
       )}
-      <div className="flex gap-2 mt-4">
+      <div className="flex items-center gap-3 mt-4"> {/* Added items-center */}
         <input
           type="text"
           placeholder="Ask a question about this paper..."
@@ -139,16 +151,19 @@ const ChatBot = ({ paperId, data, onResponse, onEvidenceClick }) => {
           onChange={(e) => setQuestion(e.target.value)}
           onKeyPress={(e) => e.key === 'Enter' && handleAsk()}
           disabled={loading}
-          className="flex-1 border border-custom-border rounded px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-custom"
+          className="flex-1 border border-custom-border rounded px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-custom-blue" // Changed focus ring color
         />
         <button
           onClick={handleAsk}
           disabled={loading}
-          className={`text-white font-semibold rounded px-3 py-0.5 text-sm transition-colors ${
-            loading ? 'bg-custom-disabled cursor-not-allowed' : 'bg-custom-blue-deep hover:bg-custom-blue-deep'
+          className={`p-2 rounded-md transition-colors ${ // Removed background, size classes, adjusted padding
+            loading
+              ? 'text-custom-disabled cursor-not-allowed' // Use text color for disabled state
+              : 'text-custom-blue-deep hover:bg-custom-blue-lightest' // Set text color, add subtle hover background
           }`}
+          aria-label="Ask question" // Add aria-label for accessibility
         >
-          {loading ? 'Asking...' : 'Ask'}
+          <SendHorizontal size={20} strokeWidth={2.5} /> {/* Use SendHorizontal icon, adjusted size and strokeWidth for boldness */}
         </button>
       </div>
     </div>
