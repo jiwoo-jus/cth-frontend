@@ -19,6 +19,16 @@ const TAB_KEYS = [
   // 'hasResults',
 ];
 
+// Map keys to display names
+const TAB_DISPLAY_NAMES = {
+  protocolSection: 'Protocol Section',
+  resultsSection: 'Results Section',
+  annotationSection: 'Annotation Section',
+  documentSection: 'Document Section',
+  derivedSection: 'Derived Section',
+  // hasResults: 'Has Results',
+};
+
 const StructuredInfoTabs = ({ structuredInfo }) => {
   const [activeTab, setActiveTab] = useState(TAB_KEYS[0]);
 
@@ -29,18 +39,18 @@ const StructuredInfoTabs = ({ structuredInfo }) => {
   return (
     <div className="w-full">
       {/* 탭 헤더 (scrollable if overflow) */}
-      <div className="flex flex-wrap gap-1 overflow-x-auto border-b mb-4 pb-1">
+      <div className="flex flex-wrap gap-2 overflow-x-auto border-b mb-4 pb-1">
         {TAB_KEYS.map((key) => (
           <button
             key={key}
-            className={`text-sm px-3 py-1 rounded-t font-semibold font-medium border-b-2 transition-colors whitespace-nowrap ${
+            className={`text-md px-3 py-1 rounded-t font-semibold font-medium border-b-2 transition-colors whitespace-nowrap ${
               activeTab === key
                 ? 'text-custom-blue-deep border-custom-blue bg-blue-50'
                 : 'text-custom-text-subtle border-transparent hover:border-custom-border'
             }`}
             onClick={() => setActiveTab(key)}
           >
-            {key}
+            {TAB_DISPLAY_NAMES[key] || key} {/* Use display name or key as fallback */}
           </button>
         ))}
       </div>
@@ -55,7 +65,9 @@ const StructuredInfoTabs = ({ structuredInfo }) => {
             defaultCollapsedDepth={0}
           />
         ) : (
-          <div className="text-custom-text-subtle text-sm">No data for {activeTab}</div>
+          <div className="text-custom-text-subtle text-sm">
+            No data for {TAB_DISPLAY_NAMES[activeTab] || activeTab}
+          </div>
         )}
       </div>
     </div>
