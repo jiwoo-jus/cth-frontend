@@ -2,6 +2,7 @@
 import queryString from 'query-string';
 import React, { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { ChevronsDownUp, ChevronsUpDown } from 'lucide-react'; // Import icons
 
 import ChatBot from '../components/ChatBot';
 import FullText from '../components/FullText';
@@ -46,9 +47,12 @@ const DetailPage = () => {
               }
             });
             setFullText(article.outerHTML);
+            // Initially expand if content is fetched successfully
             setFullTextExpanded(true);
           } else {
             setFullText(htmlString);
+            // Expand even if parsing fails but content exists
+            if (htmlString) setFullTextExpanded(true);
           }
         })
         .catch(console.error);
@@ -65,6 +69,7 @@ const DetailPage = () => {
         .then((data) => {
           setStructuredInfo(data.structured_info);
           setFullText(data.full_text || '');
+          // Expand if full_text exists
           if (data.full_text) setFullTextExpanded(true);
         })
         .catch(console.error);
@@ -136,7 +141,7 @@ const DetailPage = () => {
         </div>
         <div className="md:col-span-6 border border-custom-border rounded-2xl shadow-lg p-4 bg-white">
           <h2 className="text-xl font-semibold text-custom-blue-deep border-b border-custom-border pb-2 mb-2"> {/* Adjusted: text-2xl -> text-xl, added border color */}
-            Structured Info
+            Structured Information
           </h2>
           {structuredInfo ? (
             <StructuredInfoTabs structuredInfo={structuredInfo} />
@@ -186,9 +191,10 @@ const DetailPage = () => {
               </h2>
               <button
                 onClick={() => setFullTextExpanded((prev) => !prev)}
-                className="bg-custom-blue-deep text-white font-semibold text-xs px-4 py-1.5 rounded-full hover:bg-custom-blue-hover transition-colors" // Adjusted: size, padding, font-weight, color
+                className="p-1.5 text-custom-blue-deep rounded-full hover:bg-custom-blue-lightest transition-colors" // Adjusted styling for icon button
+                title={fullTextExpanded ? 'Collapse' : 'Expand'} // Add title
               >
-                {fullTextExpanded ? 'Collapse ▲' : 'Expand ▼'}
+                {fullTextExpanded ? <ChevronsDownUp size={18} strokeWidth={2.5}/> : <ChevronsUpDown size={18} strokeWidth={2.5}/>} {/* Use icons */}
               </button>
             </div>
             {fullTextExpanded && (
