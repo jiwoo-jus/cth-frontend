@@ -104,7 +104,7 @@ const SearchResults = ({ results, onResultSelect, onViewDetails }) => {
                 className="group p-4 bg-white border border-custom-border rounded-2xl shadow-sm hover:shadow-md transition-shadow flex flex-col md:flex-row justify-between gap-4 cursor-pointer"
               >
                 <div className="flex-1 min-w-0">
-                  <h4 className="font-semibold text-green-600 group-hover:underline text-base">
+                  <h4 className="font-semibold text-custom-green-deep group-hover:underline text-base">
                     {study.title}
                   </h4>
                   <p className="text-sm text-custom-text-subtle mt-1 truncate">
@@ -115,8 +115,8 @@ const SearchResults = ({ results, onResultSelect, onViewDetails }) => {
                       href={`https://clinicaltrials.gov/study/${study.id}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      // Use green-600 for CTG links
-                      className="text-green-600 hover:underline"
+                      // Use custom-green for CTG links
+                      className="text-custom-green hover:underline"
                       onClick={(e) => e.stopPropagation()} // Prevent triggering onResultSelect
                     >
                       {study.id}

@@ -14,6 +14,11 @@ module.exports = {
         'custom-blue-deep': '#1E40AF',
         'custom-blue-bg': '#EFF6FF',
 
+        // Custom Green Colors
+        'custom-green': '#059669',
+        'custom-green-hover': '#047857',
+        'custom-green-deep': '#0B815A',
+
         // ⚫ Grayscale
         'custom-text': '#1F2937',
         'custom-text-subtle': '#6B7280',
