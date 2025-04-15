@@ -36,30 +36,101 @@ const DetailSidebar = ({
         return <p className="text-sm text-gray-500">No abstract available.</p>;
       }
       return (
+        // Removed H4 title from here
         <div>
-          <h4 className="font-bold text-lg mb-2">Abstract</h4>
           {Object.entries(abstract).map(([key, value]) => (
             <div key={key} className="mb-2">
-              <span className="font-bold block">{key}</span>
-              <span className="block">{value}</span>
+              {/* Unified emphasis style: text-base font-semibold */}
+              <span className="font-semibold block text-base mb-1">{key}</span>
+              {/* Unified content style: text-sm */}
+              <span className="block text-sm">{value}</span>
             </div>
           ))}
         </div>
       );
     } else if (selectedResult.source === 'CTG') {
-      if (!selectedResult.references || selectedResult.references.length === 0) {
+      // Access the nested references array
+      const references = selectedResult?.structured_info?.protocolSection?.referencesModule?.references;
+
+      if (!references || references.length === 0) {
         return <p className="text-sm text-gray-500">No references available.</p>;
       }
+
+      // Grouping logic from the old code
+      const groupMap = {
+        BACKGROUND: 'General',
+        RESULT: 'Study Results',
+        DERIVED: 'From PubMed',
+      };
+      const groupDescriptions = {
+        General: 'These publications are provided voluntarily by the person who enters information about the study.',
+        'Study Results': 'These publications are about the study results.',
+        'From PubMed': 'These publications come from PubMed, a public database of scientific and medical articles.',
+        Other: 'Other related publications.',
+      };
+
+      const groups = {};
+      references.forEach((ref) => {
+        const groupName = groupMap[ref.type] || 'Other';
+        if (!groups[groupName]) {
+          groups[groupName] = [];
+        }
+        groups[groupName].push(ref);
+      });
+
       return (
+        // Removed H3 title from here
         <div>
-          {/* CTG specific rendering content */}
-          <p className="text-sm text-gray-500">CTG content goes here.</p>
+          {Object.entries(groups).map(([groupName, refs]) => (
+            <div key={groupName} className="mb-4">
+              {/* Unified emphasis style: text-base font-semibold */}
+              <h4 className="font-semibold text-base mb-1">{groupName}</h4>
+              {/* Description style remains text-sm */}
+              {groupDescriptions[groupName] && (
+                <p className="text-sm text-gray-500 mb-2">{groupDescriptions[groupName]}</p>
+              )}
+              {/* Render each reference within the group */}
+              {refs.map((ref, index) => (
+                <div key={ref.pmid || `${groupName}-${index}`} className="mb-2 border-b pb-2 last:border-b-0">
+                  {/* Unified content style: text-sm */}
+                  {ref.citation && <p className="text-sm mb-1">{ref.citation}</p>}
+                  {ref.pmid && (
+                    <a
+                      href={`https://pubmed.ncbi.nlm.nih.gov/${ref.pmid}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      // Unified content style: text-sm
+                      className="text-sm text-blue-600 hover:underline block"
+                    >
+                      PMID: {ref.pmid}
+                    </a>
+                  )}
+                  {/* Optionally display type if needed, though it's used for grouping */}
+                  {/* <p className="text-xs text-gray-500 mt-1">Type: {ref.type}</p> */}
+                </div>
+              ))}
+            </div>
+          ))}
         </div>
       );
     } else {
       return <p className="text-sm text-gray-500">Details not available.</p>;
     }
   };
+
+  // Determine the title based on selectedResult and content availability
+  const getTitle = () => {
+    if (!selectedResult || !isOpen) return null;
+
+    if ((selectedResult.source === 'PM' || selectedResult.source === 'PMC') && selectedResult.abstract) {
+      return 'Abstract';
+    } else if (selectedResult.source === 'CTG' && selectedResult?.structured_info?.protocolSection?.referencesModule?.references?.length > 0) {
+      return 'References';
+    }
+    return null;
+  };
+
+  const title = getTitle();
 
   return (
     <div
@@ -68,8 +139,16 @@ const DetailSidebar = ({
         width: isOpen ? expandedWidth : collapsedWidth,
       }}
     >
-      {/* Removed bg-gray-50, adjusted padding and justification */}
-      <div className={`flex items-center ${isOpen ? 'justify-end' : 'justify-center'} p-2 border-b border-gray-200`}>
+      {/* Header Section */}
+      <div className={`flex items-center ${isOpen ? 'justify-between' : 'justify-center'} p-2 border-b border-gray-200`}>
+        {/* Title - Only shown when open and title exists */}
+        {isOpen && title && (
+          <h3 className="font-bold text-lg ml-2">{title}</h3> // Main title remains text-lg font-bold
+        )}
+        {/* Spacer for when title is not shown but sidebar is open, to keep button right-aligned */}
+        {isOpen && !title && <div />}
+
+        {/* Toggle Button */}
         <button
           type="button"
           aria-controls="sidebar-drawer"
@@ -82,9 +161,10 @@ const DetailSidebar = ({
           {isOpen ? <PanelLeft size={18} /> : <PanelRight size={18} />}
         </button>
       </div>
+
       {/* Content is only rendered when open */}
       {isOpen && (
-        <div className="px-4 py-2 text-sm text-gray-700 overflow-hidden"> {/* Added overflow-hidden */}
+        <div className="px-4 py-2 text-sm text-gray-700 overflow-y-auto" style={{ height: 'calc(100vh - 41px)' }}> {/* Adjust height based on header height */}
           {renderContent()}
         </div>
       )}
