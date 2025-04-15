@@ -43,7 +43,7 @@ const StructuredInfoTabs = ({ structuredInfo }) => {
         {TAB_KEYS.map((key) => (
           <button
             key={key}
-            className={`text-md px-3 py-1 rounded-t font-semibold font-medium border-b-2 transition-colors whitespace-nowrap ${
+            className={`text-md px-3 py-1 rounded-t font-semibold border-b-2 transition-colors whitespace-nowrap ${
               activeTab === key
                 ? 'text-custom-blue-deep border-custom-blue bg-blue-50'
                 : 'text-custom-text-subtle border-transparent hover:border-custom-border'
