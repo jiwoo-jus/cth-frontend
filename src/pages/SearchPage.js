@@ -490,7 +490,8 @@ const handleViewDetails = (item) => {
       </aside> */}
 
       {/* 메인 컨텐츠 영역 */}
-      <div className="flex-grow p-4 min-w-0"> {/* <--- min-w-0 추가해야 해당 flex 아이템의 암시적인 최소 너비를 0으로 설정하여, flex-grow와 함께 사용될 때 다른 flex 아이템(DetailSidebar)이 커지면 자신이 차지하는 공간을 필요한 만큼 줄일 수 있도록 함. */}
+      {/* <div className="flex-grow p-4 min-w-0"> <--- min-w-0 추가해야 해당 flex 아이템의 암시적인 최소 너비를 0으로 설정하여, flex-grow와 함께 사용될 때 다른 flex 아이템(DetailSidebar)이 커지면 자신이 차지하는 공간을 필요한 만큼 줄일 수 있도록 함. */}
+      <div className="flex-grow py-8 px-4 min-w-0"> {/* Changed p-4 to py-8 px-4 */}
         <div className="mb-4 cursor-pointer" onClick={handleLogoClick}>
           <h1 className="text-3xl font-bold text-center text-black tracking-tight mb-6 hover:opacity-80 transition">
             Clinical Trials Hub
