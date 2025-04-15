@@ -126,7 +126,7 @@ const DetailPage = () => {
 
       {/* 챗봇 & 구조화 정보 영역 (4:6 그리드 레이아웃) */}
       <div className="grid grid-cols-1 md:grid-cols-10 gap-6 mb-8">
-        <div className="md:col-span-4 border border-custom-border rounded-2xl shadow-lg p-4 bg-white">
+        <div className="md:col-span-4 border border-custom-border rounded-2xl shadow-lg p-5 bg-white">
           <h2 className="text-xl font-semibold text-custom-blue-deep border-b border-custom-border pb-2 mb-2"> {/* Adjusted: text-2xl -> text-xl, added border color */}
             ChatBot
           </h2>
@@ -139,7 +139,7 @@ const DetailPage = () => {
             onEvidenceClick={scrollToEvidence}
           />
         </div>
-        <div className="md:col-span-6 border border-custom-border rounded-2xl shadow-lg p-4 bg-white">
+        <div className="md:col-span-6 border border-custom-border rounded-2xl shadow-lg p-5 bg-white">
           <h2 className="text-xl font-semibold text-custom-blue-deep border-b border-custom-border pb-2 mb-2"> {/* Adjusted: text-2xl -> text-xl, added border color */}
             Structured Information
           </h2>
@@ -154,7 +154,7 @@ const DetailPage = () => {
       </div>
 
       {/* References / Full Text 영역 */}
-      <div className="border border-custom-border rounded-2xl shadow-lg p-4 mb-8 bg-white">
+      <div className="border border-custom-border rounded-2xl shadow-lg p-5 mb-8 bg-white">
         {source === 'CTG' ? (
           <>
             <h2 className="text-xl font-semibold text-custom-blue-deep border-b border-custom-border pb-2 mb-4"> {/* Adjusted: text-2xl -> text-xl, added border color */}
