@@ -125,6 +125,14 @@ const SearchResults = ({ results, onResultSelect, onViewDetails }) => {
                       Conditions: {study.conditions.join(", ")}
                     </p>
                   )}
+                  {/* Added Study Type, References Count, and Has Results */}
+                  <p className="text-sm text-custom-text truncate mt-1">
+                    {study.studyType && `Type: ${study.studyType}`}
+                    {study.studyType && (study.references || study.hasResults !== undefined) && <span className="mx-1">&middot;</span>}
+                    {study.references && `References: ${study.references.length}`}
+                    {study.references && study.hasResults !== undefined && <span className="mx-1">&middot;</span>}
+                    {study.hasResults !== undefined && `Results: ${study.hasResults ? 'Yes' : 'No'}`}
+                  </p>
                 </div>
                 <div className="shrink-0 self-start md:self-center">
                   <button
@@ -174,6 +182,10 @@ SearchResults.propTypes = {
           title: PropTypes.string,
           status: PropTypes.string,
           conditions: PropTypes.arrayOf(PropTypes.string),
+          // Add new fields to PropTypes
+          studyType: PropTypes.string,
+          references: PropTypes.array, // Or more specific if needed
+          hasResults: PropTypes.bool,
         })
       ),
       nextPageToken: PropTypes.string,
