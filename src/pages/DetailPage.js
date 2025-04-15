@@ -76,7 +76,7 @@ const DetailPage = () => {
   };
 
   return (
-    <div className="px-6 py-8 max-w-7xl mx-auto">
+    <div className="px-6 py-8 max-w-screen-2xl mx-auto"> {/* max-w-7xl -> max-w-screen-2xl */}
       <h1
         className="text-3xl font-bold text-black tracking-tight text-center cursor-pointer mb-6 hover:opacity-80 transition" // Adjusted: text-4xl -> text-3xl, font-extrabold -> font-semibold
         onClick={() => navigate(-1)}
