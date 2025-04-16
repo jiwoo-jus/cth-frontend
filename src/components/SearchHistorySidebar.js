@@ -1,9 +1,8 @@
-// filepath: src/components/SearchHistorySidebar.js
+// src/components/SearchHistorySidebar.js
+
 import React from 'react';
 import PropTypes from 'prop-types';
 
-
-// 사용자 친화적 레이블 매핑 (필요에 따라 확장 가능)
 const labelMap = {
   cond: "Condition",
   intr: "Intervention",
@@ -14,7 +13,8 @@ const labelMap = {
   studyType: "Study Type",
   sponsor: "Sponsor",
   location: "Location",
-  status: "Status"
+  status: "Status",
+  sources: "Sources"
 };
 
 const SearchHistorySidebar = ({ history, onSelect, isOpen, toggleSidebar, sidebarWidth }) => {
@@ -30,20 +30,21 @@ const SearchHistorySidebar = ({ history, onSelect, isOpen, toggleSidebar, sideba
         <div className="mt-2 text-sm break-words">
           <h3 className="font-semibold mb-2">Search History</h3>
           {history.length === 0 ? (
-            <p className="text-gray-500">No history yet.</p>
+            <p className="text-custom-text-subtle">No history yet.</p>
           ) : (
             <ul>
               {history.map((item, index) => (
                 <li key={index} className="mb-2 border-b pb-1">
-                  <button 
+                  <button
                     onClick={() => onSelect(item)}
-                    className="block text-left w-full text-gray-700 hover:bg-gray-100 rounded p-1"
+                    className="block text-left w-full text-custom-text hover:bg-custom-input-bg rounded p-1"
                   >
                     {Object.entries(item).map(([key, value]) => {
                       if (!value) return null;
                       return (
                         <div key={key}>
-                          <span className="font-bold">{labelMap[key] || key}:</span> {value}
+                          <span className="font-bold">{labelMap[key] || key}:</span>{" "}
+                          {Array.isArray(value) ? value.join(", ") : value}
                         </div>
                       );
                     })}
@@ -58,7 +59,6 @@ const SearchHistorySidebar = ({ history, onSelect, isOpen, toggleSidebar, sideba
   );
 };
 
-
 SearchHistorySidebar.propTypes = {
   history: PropTypes.arrayOf(
     PropTypes.shape({
@@ -72,11 +72,7 @@ SearchHistorySidebar.propTypes = {
       sponsor: PropTypes.string,
       location: PropTypes.string,
       status: PropTypes.string,
-      // 페이지네이션 등 추가 값이 있다면 함께 정의할 수 있습니다.
-      page: PropTypes.number,
-      pageSize: PropTypes.number,
-      isRefined: PropTypes.bool,
-      refinedQuery: PropTypes.any
+      sources: PropTypes.arrayOf(PropTypes.string)
     })
   ).isRequired,
   onSelect: PropTypes.func.isRequired,
@@ -84,6 +80,5 @@ SearchHistorySidebar.propTypes = {
   toggleSidebar: PropTypes.func.isRequired,
   sidebarWidth: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired
 };
-
 
 export default SearchHistorySidebar;

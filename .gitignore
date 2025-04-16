@@ -31,3 +31,11 @@ jiwoo-resources
 
 .gitignore
 *test*
+
+# Temporary files
+*copy*.*
+temp*
+jiwoo-resources
+
+.gitignore
+*test*
