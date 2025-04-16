@@ -202,6 +202,28 @@ const DetailPage = () => {
   // Extract references correctly for CTG
   const ctgReferences = structuredInfo?.protocolSection?.referencesModule?.references || [];
 
+  // --- Prepare CTG Metadata for display (similar to SearchResults) ---
+  let ctgDetailsRowItems = [];
+  if (source === 'CTG' && structuredInfo) {
+    const studyType = structuredInfo.protocolSection?.designModule?.studyType;
+    const referencesCount = ctgReferences.length;
+    const status = structuredInfo.protocolSection?.statusModule?.overallStatus;
+    const hasResults = structuredInfo.hasResultsData; // Assuming this field exists in the fetched CTG detail
+
+    if (studyType) ctgDetailsRowItems.push(studyType);
+    if (referencesCount > 0) ctgDetailsRowItems.push(<strong key="ref">{referencesCount} references</strong>); else ctgDetailsRowItems.push('0 references');
+    if (status) ctgDetailsRowItems.push(status);
+    if (hasResults !== undefined) {
+        if (hasResults) ctgDetailsRowItems.push(<strong key="res">has results</strong>); else ctgDetailsRowItems.push('no results');
+    }
+  }
+  const ctgOrganization = structuredInfo?.protocolSection?.identificationModule?.organization?.fullName;
+  const ctgStartDate = structuredInfo?.protocolSection?.statusModule?.startDateStruct?.date;
+  const ctgCompletionDateInfo = structuredInfo?.protocolSection?.statusModule?.completionDateStruct;
+  const ctgCompletionDate = ctgCompletionDateInfo?.type === 'ACTUAL' ? ctgCompletionDateInfo?.date : null;
+  // --- End CTG Metadata Preparation ---
+
+
   return (
     <div className="px-6 py-8 max-w-screen-2xl mx-auto"> {/* max-w-7xl -> max-w-screen-2xl */}
       <h1
@@ -212,53 +234,99 @@ const DetailPage = () => {
       </h1>
 
       {/* 메타데이터 카드 - Display based on source */}
+      {/* --- PMC/PM Metadata Card --- */}
       {source !== 'CTG' && metadata.title !== 'No Title Available' && (
         <div className="bg-custom-bg-soft border border-custom-border p-5 rounded-2xl shadow-lg mb-8">
-          {/* ... (keep existing PMC metadata rendering) ... */}
-           <h2 className="text-lg font-semibold text-custom-blue-deep mb-2"> {/* Adjusted: text-2xl -> text-xl */}
+           {/* Source Indicator */}
+           <p className="text-xs text-custom-text-subtle mb-1">from PubMed</p>
+           <h2 className="text-lg font-semibold text-custom-blue-deep mb-1"> {/* Adjusted: text-2xl -> text-lg */}
             {metadata.title}
           </h2>
-          <div className="mt-2 space-y-2 text-sm text-custom-text"> {/* Adjusted: text-base -> text-sm */}
-            {metadata.authors?.length > 0 && (
-              <p className="text-sm text-custom-text-subtle pt-1"> {/* Adjusted: text-base -> text-sm, added pt-1 */}
-                {metadata.authors.join(', ')}
-              </p>
+          {metadata.authors?.length > 0 && (
+            <p className="text-sm text-custom-text-subtle mt-1"> {/* Adjusted: text-base -> text-sm, added pt-1 */}
+              {metadata.authors.join(', ')}
+            </p>
+          )}
+          <p className="text-sm text-custom-text mt-1">
+            {metadata.journal && <span>{metadata.journal}</span>}
+            {metadata.journal && metadata.pubDate && <span className="mx-1">|</span>}
+            {metadata.pubDate && <span>{metadata.pubDate}</span>}
+          </p>
+          <p className="text-xs text-custom-text-subtle mt-1">
+            {metadata.pmid && (
+                <a
+                    href={`https://pubmed.ncbi.nlm.nih.gov/${metadata.pmid}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-custom-blue hover:underline"
+                >
+                    {metadata.pmid}
+                </a>
             )}
-            <div className="flex flex-wrap gap-x-8 gap-y-1"> {/* Adjusted gap */}
-              {metadata.studyType && (
-                <p>
-                  <strong>Study Type:</strong> {metadata.studyType}
-                </p>
-              )}
-              {metadata.pubDate && (
-                <p>
-                  {metadata.pubDate} {metadata.doi && `(${metadata.doi})`}
-                  {metadata.journal && <span>{metadata.journal}, </span>}
-                </p>
-              )}
-            </div>
-            <div className="flex flex-wrap gap-x-6 gap-y-1"> {/* Adjusted gap */}
-              {metadata.pmid && <p>PMID: {metadata.pmid}</p>}
-              {metadata.pmcid && <p>PMCID: {metadata.pmcid}</p>}
-              {metadata.nctId && <p>NCT ID: {metadata.nctId}</p>}
-            </div>
-          </div>
+            {metadata.pmid && metadata.pmcid && <span className="mx-1">|</span>}
+            {metadata.pmcid && (
+                <a
+                    href={`https://www.ncbi.nlm.nih.gov/pmc/articles/${metadata.pmcid}/`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-custom-blue hover:underline"
+                >
+                    {metadata.pmcid}
+                </a>
+            )}
+            {/* Removed NCT ID display for PM/PMC source */}
+          </p>
+          {/* Include Study Type if available */}
+          {metadata.studyType && (
+            <p className="text-sm text-custom-text mt-1">
+              <strong>Study Type:</strong> {metadata.studyType}
+            </p>
+          )}
         </div>
       )}
-       {/* Basic Metadata for CTG */}
+
+       {/* --- CTG Metadata Card --- */}
       {source === 'CTG' && structuredInfo && (
-         <div className="bg-custom-bg-soft border border-custom-border p-5 rounded-2xl shadow-lg mb-8">
-            <h2 className="text-lg font-semibold text-custom-blue-deep mb-2">
+        <div className="bg-custom-bg-soft border border-custom-border p-5 rounded-2xl shadow-lg mb-8">
+            {/* Source Indicator */}
+            <p className="text-xs text-custom-text-subtle mb-1">from ClinicalTrials.gov</p>
+            <h2 className="text-lg font-semibold text-custom-blue-deep mb-1"> {/* Changed text-custom-green-deep to text-custom-blue-deep */}
                 {structuredInfo.protocolSection?.identificationModule?.briefTitle || metadata.title}
             </h2>
-             <div className="mt-2 space-y-2 text-sm text-custom-text">
-                 <p><strong>NCT ID:</strong> {nctId}</p>
-                 <p><strong>Status:</strong> {structuredInfo.protocolSection?.statusModule?.overallStatus}</p>
-                 {/* Add more relevant CTG metadata if needed */}
-             </div>
-         </div>
+            {/* Organization, Start Date, Completion Date */}
+            {(ctgOrganization || ctgStartDate || ctgCompletionDate) && (
+              <p className="text-sm text-custom-text mt-1">
+                {ctgOrganization}
+                {ctgOrganization && (ctgStartDate || ctgCompletionDate) && <span className="mx-1">|</span>}
+                {ctgStartDate && `Start: ${ctgStartDate}`}
+                {ctgStartDate && ctgCompletionDate && <span className="mx-1">|</span>}
+                {ctgCompletionDate && `Completion: ${ctgCompletionDate}`}
+              </p>
+            )}
+            {/* Type | References | Status | Results */}
+            {ctgDetailsRowItems.length > 0 && (
+              <p className="text-sm text-custom-text mt-1">
+                {ctgDetailsRowItems.map((item, index) => (
+                  <React.Fragment key={index}>
+                    {item}
+                    {index < ctgDetailsRowItems.length - 1 && <span className="mx-1">|</span>}
+                  </React.Fragment>
+                ))}
+              </p>
+            )}
+            {/* NCT ID Link */}
+            <p className="text-xs text-custom-text-subtle mt-1">
+                <a
+                    href={`https://clinicaltrials.gov/study/${nctId}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-custom-blue hover:underline" // Changed text-custom-green to text-custom-blue
+                >
+                    {nctId}
+                </a>
+            </p>
+        </div>
       )}
-
 
       {/* 챗봇 & 구조화 정보 영역 (4:6 그리드 레이아웃) */}
       <div className="grid grid-cols-1 md:grid-cols-10 gap-6 mb-8">
@@ -314,7 +382,7 @@ const DetailPage = () => {
                             (PubMed)
                         </a>
                         )}
-                         {ref.pmcid && (
+                        {ref.pmcid && (
                         <a
                             href={`https://www.ncbi.nlm.nih.gov/pmc/articles/${ref.pmcid}/`}
                             target="_blank"
@@ -354,9 +422,9 @@ const DetailPage = () => {
               )}
             </div>
              {/* Conditionally render FullText for the selected reference */}
-             {expandedReferenceIndex !== null && (
+            {expandedReferenceIndex !== null && (
                 <div className="mt-4 pt-4 border-t border-custom-border">
-                     <h3 className="text-lg font-semibold text-custom-blue-deep mb-2">Full Text for Reference {expandedReferenceIndex + 1}</h3>
+                    <h3 className="text-lg font-semibold text-custom-blue-deep mb-2">Full Text for Reference {expandedReferenceIndex + 1}</h3>
                     <FullText ref={referenceFullTextRef} fullText={referenceFullText} />
                 </div>
             )}
@@ -380,13 +448,13 @@ const DetailPage = () => {
             {fullTextExpanded && fullText ? (
               <FullText ref={fullTextRef} fullText={fullText} />
             ) : fullTextExpanded && !fullText ? (
-                 <div className="flex justify-center items-center text-custom-text-subtle h-28 text-sm">
+                <div className="flex justify-center items-center text-custom-text-subtle h-28 text-sm">
                     Loading full text...
-                 </div>
+                </div>
             ) : null}
-             {!fullText && !fullTextExpanded && (
-                 <p className="text-custom-text-subtle text-sm">Full text is collapsed or not available.</p>
-             )}
+            {!fullText && !fullTextExpanded && (
+                <p className="text-custom-text-subtle text-sm">Full text is collapsed or not available.</p>
+            )}
           </>
         )}
       </div>
