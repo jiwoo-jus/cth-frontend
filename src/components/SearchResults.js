@@ -37,7 +37,7 @@ const SearchResults = ({ results, onResultSelect, onViewDetails }) => {
                     {item.authors.join(", ")}
                   </p>
                   <p className="text-sm text-custom-text truncate">
-                  {item.pubDate} &middot; {item.journal}
+                  {item.journal} <span className="mx-1">|</span> {item.pubDate}
                   </p>
                   <p className="text-xs text-custom-text-subtle mt-1 truncate">
                     <a
@@ -95,58 +95,110 @@ const SearchResults = ({ results, onResultSelect, onViewDetails }) => {
         </h3>
         {ctgResults.results.length > 0 ? (
           <ul className="space-y-3">
-            {ctgResults.results.map((study) => (
-              <li
-                key={study.id}
-                onClick={() => onResultSelect(study)}
-                className="group p-4 bg-white border border-custom-border rounded-2xl shadow-sm hover:shadow-md transition-shadow flex flex-col md:flex-row justify-between gap-4 cursor-pointer"
-              >
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-semibold text-custom-green-deep group-hover:underline text-base">
-                    {study.title}
-                  </h4>
-                  <p className="text-sm text-custom-text-subtle mt-1 truncate">
-                    Status: {study.status}
-                  </p>
-                  <p className="text-xs text-custom-text-subtle truncate">
-                    <a
-                      href={`https://clinicaltrials.gov/study/${study.id}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      // Use custom-green for CTG links
-                      className="text-custom-green hover:underline"
-                      onClick={(e) => e.stopPropagation()} // Prevent triggering onResultSelect
-                    >
-                      {study.id}
-                    </a>
-                  </p>
-                  {study.conditions && study.conditions.length > 0 && (
-                    <p className="text-sm text-custom-text truncate">
-                      Conditions: {study.conditions.join(", ")}
+            {ctgResults.results.map((study) => {
+              // Safely access nested properties
+              const organization = study.structured_info?.protocolSection?.identificationModule?.organization?.fullName;
+              const startDate = study.structured_info?.protocolSection?.statusModule?.startDateStruct?.date;
+              // Check completion date type before assigning
+              const completionDateInfo = study.structured_info?.protocolSection?.statusModule?.completionDateStruct;
+              const completionDate = completionDateInfo?.type === 'ACTUAL' ? completionDateInfo?.date : null;
+
+              // Build the details row items conditionally in the desired order
+              const detailsRowItems = [];
+
+              // 1. Type
+              if (study.studyType) {
+                detailsRowItems.push(study.studyType);
+              }
+
+              // 2. References
+              if (study.references) {
+                if (study.references.length > 0) {
+                  detailsRowItems.push(
+                    <strong key="ref">{study.references.length} references</strong>
+                  );
+                } else {
+                  detailsRowItems.push('0 references');
+                }
+              }
+
+              // 3. Status
+              if (study.status) {
+                detailsRowItems.push(study.status);
+              }
+
+              // 4. Results
+              if (study.hasResults !== undefined) {
+                if (study.hasResults) {
+                  detailsRowItems.push(<strong key="res">has results</strong>);
+                } else {
+                  detailsRowItems.push('no results');
+                }
+              }
+
+
+              return (
+                <li
+                  key={study.id}
+                  onClick={() => onResultSelect(study)}
+                  className="group p-4 bg-white border border-custom-border rounded-2xl shadow-sm hover:shadow-md transition-shadow flex flex-col md:flex-row justify-between gap-4 cursor-pointer"
+                >
+                  <div className="flex-1 min-w-0">
+                    {/* 1행: 타이틀 */}
+                    <h4 className="font-semibold text-custom-green-deep group-hover:underline text-base">
+                      {study.title}
+                    </h4>
+                    {/* 2행: organization, study start, study completion */}
+                    {(organization || startDate || completionDate) && (
+                       <p className="text-sm text-custom-text mt-1 truncate">
+                         {organization}
+                         {/* Add separator if organization exists AND (startDate OR completionDate exists) */}
+                         {organization && (startDate || completionDate) && <span className="mx-1">|</span>}
+                         {startDate && `Start: ${startDate}`}
+                         {/* Add separator if startDate exists AND completionDate exists */}
+                         {startDate && completionDate && <span className="mx-1">|</span>}
+                         {/* Display completionDate only if it exists (i.e., type was 'ACTUAL') */}
+                         {completionDate && `Completion: ${completionDate}`}
+                       </p>
+                    )}
+                    {/* 3행: Type | References | Status | Results */}
+                    {detailsRowItems.length > 0 && (
+                      <p className="text-sm text-custom-text truncate mt-1">
+                        {detailsRowItems.map((item, index) => (
+                          <React.Fragment key={index}>
+                            {item}
+                            {index < detailsRowItems.length - 1 && <span className="mx-1">|</span>}
+                          </React.Fragment>
+                        ))}
+                      </p>
+                    )}
+                    {/* 4행: nctid */}
+                    <p className="text-xs text-custom-text-subtle truncate mt-1">
+                      <a
+                        href={`https://clinicaltrials.gov/study/${study.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-custom-green hover:underline"
+                        onClick={(e) => e.stopPropagation()} // Prevent triggering onResultSelect
+                      >
+                        {study.id}
+                      </a>
                     </p>
-                  )}
-                  {/* Added Study Type, References Count, and Has Results */}
-                  <p className="text-sm text-custom-text truncate mt-1">
-                    {study.studyType && `Type: ${study.studyType}`}
-                    {study.studyType && (study.references || study.hasResults !== undefined) && <span className="mx-1">&middot;</span>}
-                    {study.references && `References: ${study.references.length}`}
-                    {study.references && study.hasResults !== undefined && <span className="mx-1">&middot;</span>}
-                    {study.hasResults !== undefined && `Results: ${study.hasResults ? 'Yes' : 'No'}`}
-                  </p>
-                </div>
-                <div className="shrink-0 self-start md:self-center">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onViewDetails(study);
-                    }}
-                    className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-primary-100 text-secondary-100 rounded-full hover:bg-primary-100 transition-colors"
-                  >
-                    <Eye size={14} /> View
-                  </button>
-                </div>
-              </li>
-            ))}
+                  </div>
+                  <div className="shrink-0 self-start md:self-center">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onViewDetails(study);
+                      }}
+                      className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-primary-100 text-secondary-100 rounded-full hover:bg-primary-100 transition-colors"
+                    >
+                      <Eye size={14} /> View
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         ) : (
           <p className="text-sm text-custom-text-subtle">
@@ -182,10 +234,27 @@ SearchResults.propTypes = {
           title: PropTypes.string,
           status: PropTypes.string,
           conditions: PropTypes.arrayOf(PropTypes.string),
-          // Add new fields to PropTypes
           studyType: PropTypes.string,
-          references: PropTypes.array, // Or more specific if needed
+          references: PropTypes.array,
           hasResults: PropTypes.bool,
+          // Add structured_info for new fields
+          structured_info: PropTypes.shape({
+            protocolSection: PropTypes.shape({
+              identificationModule: PropTypes.shape({
+                organization: PropTypes.shape({
+                  fullName: PropTypes.string,
+                }),
+              }),
+              statusModule: PropTypes.shape({
+                startDateStruct: PropTypes.shape({
+                  date: PropTypes.string,
+                }),
+                completionDateStruct: PropTypes.shape({
+                  date: PropTypes.string,
+                }),
+              }),
+            }),
+          }),
         })
       ),
       nextPageToken: PropTypes.string,
