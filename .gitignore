@@ -23,3 +23,11 @@ yarn-error.log*
 
 # IDE
 .idea/
+
+# Temporary files
+*copy*.*
+temp*
+jiwoo-resources
+
+.gitignore
+*test*
