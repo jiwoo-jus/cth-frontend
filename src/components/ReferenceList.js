@@ -21,6 +21,7 @@ const ReferenceList = forwardRef(({ references }, ref) => {
 
   // Fetch PMCIDs in batch when references change
   useEffect(() => {
+    // ... (useEffect logic remains the same) ...
     const pmidsInReferences = references
       ?.map(ref => ref.pmid)
       .filter(pmid => pmid); // Get all valid PMIDs from references
@@ -83,6 +84,7 @@ const ReferenceList = forwardRef(({ references }, ref) => {
   }));
 
   const handleReferenceToggle = async (index, refData) => {
+    // ... (handleReferenceToggle logic remains the same) ...
     if (index === expandedReferenceIndex) {
       setExpandedReferenceIndex(null);
       setReferenceFullText('');
@@ -171,19 +173,34 @@ const ReferenceList = forwardRef(({ references }, ref) => {
                 <p className="text-sm text-custom-text-subtle mb-3">{groupDescriptions[groupName]}</p>
               )}
               <div className="space-y-4 text-sm">
-                {refs.map((ref, index) => {
+                {/* Remove the unused 'index' parameter */}
+                {refs.map((ref) => {
+                  // Use findIndex on the original references array to get the global index
                   const originalIndex = references.findIndex(r =>
                     r.pmid === ref.pmid && r.citation === ref.citation);
                   const displayPmcid = ref.pmcid || pmcidMap[ref.pmid]; // Get PMCID from ref or map
+                  const isExpanded = originalIndex === expandedReferenceIndex; // Check if this item is expanded
 
                   return (
-                    <div key={ref.pmid || `${groupName}-${index}`} className="border-b border-custom-border-light pb-3 last:border-b-0">
-                      <div className="mb-1"> {/* Reduced margin bottom */}
-                        {ref.citation || 'No citation available'}
+                    // Add conditional styling for highlighting the expanded item
+                    <div
+                      key={ref.pmid || `${groupName}-${originalIndex}`} // Use originalIndex for key consistency
+                      className={`border-b border-custom-border-light pb-3 last:border-b-0 p-3 rounded-md transition-colors duration-200 ${
+                        isExpanded ? 'bg-custom-blue-lightest border-l-4 border-l-custom-blue' : 'bg-white' // Highlight style
+                      }`}
+                    >
+                      <div className="mb-1 flex items-start gap-2"> {/* Use flex for numbering */}
+                        {/* Add numbering */}
+                        <span className="font-semibold text-custom-text-subtle w-5 text-right">
+                          {originalIndex + 1}.
+                        </span>
+                        <span className="flex-1"> {/* Citation takes remaining space */}
+                          {ref.citation || 'No citation available'}
+                        </span>
                       </div>
                       {/* Display PMID and PMCID links */}
                       {(ref.pmid || displayPmcid) && (
-                        <div className="text-xs text-custom-text-subtle mb-2">
+                        <div className="text-xs text-custom-text-subtle mb-2 ml-7"> {/* Indent links to align with citation */}
                           {ref.pmid && (
                             <a
                               href={`https://pubmed.ncbi.nlm.nih.gov/${ref.pmid}/`}
@@ -210,27 +227,29 @@ const ReferenceList = forwardRef(({ references }, ref) => {
                           {ref.pmid && !displayPmcid && loadingPmcids && <span className="ml-2 text-xs">(loading PMCID...)</span>}
                         </div>
                       )}
-                      {/* Expand button - enable if PMID or PMCID exists */}
-                      {(ref.pmid || ref.pmcid || pmcidMap[ref.pmid]) && ( // Enable if we have an ID to fetch with
+                      {/* Expand button - enable only if displayPmcid exists */}
+                      <div className="ml-7"> {/* Indent button */}
                         <button
                           onClick={() => handleReferenceToggle(originalIndex, ref)}
-                          disabled={isFetchingReference && expandedReferenceIndex === originalIndex}
+                          // Disable if fetching this specific item OR if displayPmcid is falsy (null, undefined, '')
+                          disabled={(isFetchingReference && isExpanded) || !displayPmcid}
                           className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded ${
-                            expandedReferenceIndex === originalIndex
-                              ? 'bg-custom-blue-lightest text-custom-blue-deep'
+                            isExpanded
+                              ? 'bg-custom-blue-light text-custom-blue-deep' // Slightly darker bg when expanded
                               : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                          } transition-colors disabled:opacity-50`}
+                          } transition-colors disabled:opacity-50 disabled:cursor-not-allowed`} // Add disabled cursor style
+                          title={!displayPmcid ? "Full text requires PMCID" : (isExpanded ? 'Collapse Full Text' : 'Expand Full Text')} // Add tooltip for disabled state
                         >
-                          {isFetchingReference && expandedReferenceIndex === originalIndex ? (
+                          {isFetchingReference && isExpanded ? (
                             <Loader2 size={12} className="animate-spin" />
-                          ) : expandedReferenceIndex === originalIndex ? (
+                          ) : isExpanded ? (
                             <ChevronsDownUp size={12} />
                           ) : (
                             <ChevronsUpDown size={12} />
                           )}
-                          {expandedReferenceIndex === originalIndex ? 'Collapse Full Text' : 'Expand Full Text'}
+                          {isExpanded ? 'Collapse Full Text' : 'Expand Full Text'}
                         </button>
-                      )}
+                      </div>
                     </div>
                   );
                 })}
@@ -241,10 +260,13 @@ const ReferenceList = forwardRef(({ references }, ref) => {
       ) : (
         <p className="text-custom-text-subtle">No references available.</p>
       )}
-      {/* Full text display area (remains the same) */}
+      {/* Full text display area */}
       {expandedReferenceIndex !== null && (
         <div className="mt-4 pt-4 border-t border-custom-border">
-          <h3 className="text-lg font-semibold text-custom-blue-deep mb-2">Full Text for Reference {expandedReferenceIndex + 1}</h3>
+          {/* Use originalIndex + 1 for the title */}
+          <h3 className="text-lg font-semibold text-custom-blue-deep mb-2">
+            Full Text for Reference {expandedReferenceIndex + 1}
+          </h3>
           {isFetchingReference ? (
              <div className="flex justify-center items-center h-20">
                <Loader2 size={24} className="animate-spin text-custom-blue-deep" />
