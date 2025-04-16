@@ -30,3 +30,4 @@ temp*
 jiwoo-resources
 
 .gitignore
+*test*

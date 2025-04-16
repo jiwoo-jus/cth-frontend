@@ -21,14 +21,18 @@ const ReferenceList = forwardRef(({ references }, ref) => {
 
   // Fetch PMCIDs in batch when references change
   useEffect(() => {
-    const pmidsToFetch = references
+    const pmidsInReferences = references
       ?.map(ref => ref.pmid)
-      .filter(pmid => pmid && !pmcidMap[pmid]) // Only fetch if PMID exists and not already mapped
-      .join(',');
+      .filter(pmid => pmid); // Get all valid PMIDs from references
 
-    if (pmidsToFetch) {
+    // Filter out PMIDs that are already present in pmcidMap (regardless of value)
+    const pmidsToFetchArray = pmidsInReferences?.filter(pmid => !(pmid in pmcidMap)) || [];
+
+    if (pmidsToFetchArray.length > 0) {
+      const pmidsToFetchString = pmidsToFetchArray.join(',');
       setLoadingPmcids(true);
-      fetch(`${BASE_URL}/api/utils/pmid_to_pmcid_batch?pmids=${pmidsToFetch}`)
+
+      fetch(`${BASE_URL}/api/utils/pmid_to_pmcid_batch?pmids=${pmidsToFetchString}`)
         .then(res => {
           if (!res.ok) {
             throw new Error(`HTTP error! status: ${res.status}`);
@@ -37,18 +41,33 @@ const ReferenceList = forwardRef(({ references }, ref) => {
         })
         .then(records => {
           const mapUpdate = {};
-          records.forEach(record => {
-            if (record.pmid && record.pmcid) {
-              mapUpdate[record.pmid] = record.pmcid;
+          // Create a quick lookup map from the response records
+          const responseMap = records.reduce((acc, record) => {
+            if (record.pmid) {
+              // Store the PMCID if available, otherwise mark as attempted (null)
+              acc[record.pmid] = record.pmcid || null;
             }
+            return acc;
+          }, {});
+
+          // For every PMID we requested, add an entry to mapUpdate
+          pmidsToFetchArray.forEach(pmid => {
+            // Use the found PMCID from responseMap, or null if not found/error
+            mapUpdate[pmid] = responseMap[pmid] !== undefined ? responseMap[pmid] : null;
           });
-          // Merge new results with existing map (if any partial fetches happened)
+
+          // Merge new results with existing map
           setPmcidMap(prevMap => ({ ...prevMap, ...mapUpdate }));
           console.log("Fetched PMCID map update:", mapUpdate);
         })
         .catch(error => {
           console.error("Error fetching PMCID batch:", error);
-          // Optionally handle error state, maybe retry?
+          // On error, mark all requested PMIDs as attempted (null) to prevent retries
+          const errorMapUpdate = {};
+          pmidsToFetchArray.forEach(pmid => {
+            errorMapUpdate[pmid] = null; // Mark as attempted even on fetch error
+          });
+          setPmcidMap(prevMap => ({ ...prevMap, ...errorMapUpdate }));
         })
         .finally(() => {
           setLoadingPmcids(false);
