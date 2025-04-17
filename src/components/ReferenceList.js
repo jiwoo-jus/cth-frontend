@@ -11,7 +11,8 @@ const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5050';
 // Remove the old single getPmcidFromPmid helper function
 // async function getPmcidFromPmid(pmid) { ... } // REMOVED
 
-const ReferenceList = forwardRef(({ references }, ref) => {
+// Accept onActiveReferenceChange in props
+const ReferenceList = forwardRef(({ references, onActiveReferenceChange }, ref) => {
   const [expandedReferenceIndex, setExpandedReferenceIndex] = useState(null);
   const [referenceFullText, setReferenceFullText] = useState('');
   const [isFetchingReference, setIsFetchingReference] = useState(false);
@@ -80,6 +81,15 @@ const ReferenceList = forwardRef(({ references }, ref) => {
   useImperativeHandle(ref, () => ({
     highlightEvidence: (evidenceText) => {
       referenceFullTextRef.current?.highlightEvidence?.(evidenceText);
+    },
+    // Highlight within the currently selected/expanded reference's FullText
+    highlightEvidenceInSelected: (evidenceText) => {
+        if (expandedReferenceIndex !== null && referenceFullTextRef.current) {
+            referenceFullTextRef.current.highlightEvidence(evidenceText);
+            return true; // Indicate highlighting was attempted
+        }
+        console.warn("HighlightEvidenceInSelected called but no reference is expanded.");
+        return false; // Indicate no expanded reference to highlight in
     }
   }));
 
@@ -88,10 +98,15 @@ const ReferenceList = forwardRef(({ references }, ref) => {
     if (index === expandedReferenceIndex) {
       setExpandedReferenceIndex(null);
       setReferenceFullText('');
+      // Call callback with null when collapsing
+      if (onActiveReferenceChange) {
+          onActiveReferenceChange(null);
+      }
     } else {
       setIsFetchingReference(true);
       setExpandedReferenceIndex(index);
       setReferenceFullText(''); // Clear previous text
+      // We will call onActiveReferenceChange after fetch attempt
 
       try {
         // Use PMCID directly from refData if available, otherwise check the fetched map
@@ -105,6 +120,10 @@ const ReferenceList = forwardRef(({ references }, ref) => {
            // For now, show message:
            setReferenceFullText('<p>Full text not available (No PMCID found).</p>');
            setIsFetchingReference(false);
+           // Call callback with null as we couldn't get the info
+           if (onActiveReferenceChange) {
+               onActiveReferenceChange(null);
+           }
            return;
         }
 
@@ -113,7 +132,10 @@ const ReferenceList = forwardRef(({ references }, ref) => {
         if (!res.ok) throw new Error(`HTTP error fetching full text! status: ${res.status}`);
         const htmlString = await res.text();
 
-        // Parse and clean HTML (same logic as before)
+        // Declare a variable to hold the processed full text
+        let processedFullText = '';
+
+        // Parse and clean HTML
         const parser = new DOMParser();
         const doc = parser.parseFromString(htmlString, 'text/html');
         const article = doc.querySelector("#main-content > article");
@@ -124,13 +146,28 @@ const ReferenceList = forwardRef(({ references }, ref) => {
               section.remove();
             }
           });
-          setReferenceFullText(article.outerHTML);
+          // Assign the cleaned HTML to the variable
+          processedFullText = article.outerHTML;
         } else {
-          setReferenceFullText(htmlString || '<p>Full text content not found in response.</p>');
+          // Assign the raw HTML string (or fallback) to the variable
+          processedFullText = htmlString || '<p>Full text content not found in response.</p>';
         }
+
+        // Set the state using the processed text
+        setReferenceFullText(processedFullText);
+
+        // Call callback with the processed text
+        if (onActiveReferenceChange) {
+            onActiveReferenceChange({ pmcid: targetPmcid, fullText: processedFullText });
+        }
+
       } catch (error) {
         console.error("Error fetching reference full text:", error);
         setReferenceFullText('<p>Error loading reference full text.</p>');
+        // Call callback with null on error
+        if (onActiveReferenceChange) {
+            onActiveReferenceChange(null);
+        }
       } finally {
         setIsFetchingReference(false);
       }
@@ -291,6 +328,7 @@ ReferenceList.propTypes = {
     pmcid: PropTypes.string, // Keep this, might be provided directly
     citation: PropTypes.string,
   })).isRequired,
+  onActiveReferenceChange: PropTypes.func, // Add prop type for the callback
 };
 
 export default ReferenceList;
