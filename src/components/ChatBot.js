@@ -1,4 +1,4 @@
-import { ChevronsDownUp, ChevronsUpDown, Clipboard, ClipboardCheck, SendHorizontal } from 'lucide-react';
+import { ChevronsDownUp, ChevronsUpDown, Clipboard, ClipboardCheck, SendHorizontal, TextSearch } from 'lucide-react';
 // Added useEffect
 import PropTypes from 'prop-types';
 // src/components/ChatBot.js
@@ -12,13 +12,14 @@ function copyToClipboard(text) {
   return navigator.clipboard.writeText(text); // Return the promise
 }
 
-const ChatMessage = ({ message, onToggle, onEvidenceClick }) => {
+// Updated ChatMessage component
+const ChatMessage = ({ message, onToggle, onEvidenceClick, canHighlightEvidence }) => {
   const [isCopied, setIsCopied] = useState(false);
 
   const handleCopyAll = () => {
     // Ensure evidence items are stringified for copying if they are objects
     const evidenceString = message.evidence?.map(evi =>
-        typeof evi === 'object' && evi !== null ? JSON.stringify(evi, null, 2) : String(evi) // Use pretty print for copy too
+        getEvidenceAsString(evi) // Use the helper which now cleans quotes
       ).join('\n') || '';
     const textToCopy = `Q: ${message.question}\nA: ${message.answer}${evidenceString ? '\nEvidence:\n' + evidenceString : ''}`;
     copyToClipboard(textToCopy).then(() => {
@@ -27,23 +28,44 @@ const ChatMessage = ({ message, onToggle, onEvidenceClick }) => {
     }).catch(err => console.error('Failed to copy:', err));
   };
 
-  // Helper function to safely convert evidence item to a string
+  // Helper function to safely convert evidence item to a string AND clean quotes
   const getEvidenceAsString = (evi) => {
+    let str = '';
     if (typeof evi === 'string') {
-      return evi;
+      str = evi;
     } else if (typeof evi === 'object' && evi !== null) {
       try {
         // Return stringified JSON (pretty-printed)
-        return JSON.stringify(evi, null, 2);
+        str = JSON.stringify(evi, null, 2);
       } catch (e) {
         console.error("Failed to stringify evidence object:", evi, e);
-        return "[Object Conversion Error]"; // Return an error string
+        str = "[Object Conversion Error]"; // Return an error string
       }
     } else if (evi === null || evi === undefined) {
-        return ""; // Return empty string
+        str = ""; // Return empty string
+    } else {
+      // Fallback for other types
+      str = String(evi);
     }
-    // Fallback for other types
-    return String(evi);
+    // Clean surrounding quotes
+    return str.trim().replace(/^['"]|['"]$/g, '');
+  };
+
+  // Helper function to render the answer, handling potential objects
+  const renderAnswer = (answer) => {
+    if (typeof answer === 'string') {
+      return answer;
+    } else if (typeof answer === 'object' && answer !== null) {
+      try {
+        // Convert object to a readable string format (pretty-printed JSON)
+        return JSON.stringify(answer, null, 2);
+      } catch (e) {
+        console.error("Failed to stringify answer object:", answer, e);
+        return "[Invalid Answer Format]";
+      }
+    }
+    // Handle null, undefined, or other types gracefully
+    return String(answer ?? ''); // Use nullish coalescing for undefined/null
   };
 
   return (
@@ -59,7 +81,16 @@ const ChatMessage = ({ message, onToggle, onEvidenceClick }) => {
         <>
           <div className="flex items-start gap-2 mb-3">
             <strong className="text-custom-blue-deep">A:</strong>
-            <div className="flex-1 whitespace-pre-wrap text-custom-text">{message.answer}</div>
+            {/* Check if the original answer was an object to decide on rendering style */}
+            {typeof message.answer === 'object' && message.answer !== null ? (
+              <pre className="flex-1 whitespace-pre-wrap text-custom-text bg-gray-50 p-1 rounded text-xs">
+                {renderAnswer(message.answer)}
+              </pre>
+            ) : (
+              <div className="flex-1 whitespace-pre-wrap text-custom-text">
+                {renderAnswer(message.answer)}
+              </div>
+            )}
           </div>
 
           {/* Evidence */}
@@ -68,41 +99,42 @@ const ChatMessage = ({ message, onToggle, onEvidenceClick }) => {
               <strong className="block mb-1 text-custom-blue-deep">Evidence:</strong>
               <ul className="list-none space-y-2 pl-0">
                 {message.evidence.map((evi, idx) => {
-                  // Determine if the original evidence was an object
-                  const isObjectEvidence = typeof evi === 'object' && evi !== null;
-                  // Get the string representation using the helper
+                  // Determine if the original evidence was an object (before cleaning)
+                  const isObjectEvidence = typeof evi === 'object' && evi !== null && !Array.isArray(evi);
+                  // Get the cleaned string representation using the helper
                   const evidenceString = getEvidenceAsString(evi);
 
-                  // *** Add Detailed Logging Here ***
-                  console.log(`ChatMessage Rendering Evidence Item #${idx}:`, {
-                    originalValue: evi,
-                    type: typeof evi,
-                    isNull: evi === null
-                  });
-                  // *** End Logging ***
-
-                  // *** Log the string result before rendering ***
-                  console.log(`ChatMessage Evidence Item #${idx} as String:`, evidenceString);
-                  // *** End Logging ***
+                  // Check if the evidence can be highlighted using the passed function
+                  const canHighlight = evidenceString && canHighlightEvidence(evidenceString);
 
                   return (
                     <li key={idx} className="flex items-start gap-2">
                       <button
-                        className="text-custom-blue hover:text-custom-blue-hover text-xs mt-1 p-0 leading-none flex-shrink-0" // Added flex-shrink-0
-                        onClick={() => onEvidenceClick(evi)} // Still pass original evi
-                        title="Highlight evidence" // Updated title
+                        className={`text-xs mt-1 p-0 leading-none flex-shrink-0 rounded-full focus:outline-none focus:ring-1 focus:ring-offset-1 ${ // Added focus style
+                          canHighlight
+                            ? 'text-custom-blue hover:text-custom-blue-hover cursor-pointer focus:ring-custom-blue' // Style for highlightable
+                            : 'text-gray-400 cursor-not-allowed' // Style for non-highlightable
+                        }`}
+                        onClick={() => {
+                            // Only trigger click if highlightable and string exists
+                            if (canHighlight && evidenceString) {
+                                onEvidenceClick(evidenceString); // Pass cleaned string
+                            }
+                        }}
+                        disabled={!canHighlight} // Disable button if cannot highlight
+                        title={canHighlight ? "Highlight evidence in text" : "Evidence not found in text"} // Dynamic title
                       >
-                        <span role="img" aria-label="Highlight">🔍</span> {/* Using emoji for visual cue */}
+                        <TextSearch size={14} strokeWidth={2} /> {/* Use TextSearch icon */}
                       </button>
                       <div className="flex-1 min-w-0"> {/* Added flex-1 and min-w-0 for proper wrapping */}
                         {/* Conditionally wrap the string output in <pre> if it came from an object */}
                         {isObjectEvidence ? (
-                          <pre className="text-xs bg-gray-100 p-1 rounded overflow-x-auto whitespace-pre-wrap break-words"> {/* Added whitespace/break */}
+                          <pre className="text-xs bg-gray-100 p-1 rounded overflow-x-auto whitespace-pre-wrap break-words">{/* Added whitespace/break */}
                             {evidenceString}
                           </pre>
                         ) : (
-                          // Render string directly (or wrap in span if needed for styling)
-                          <span className="whitespace-pre-wrap break-words">{/* Added whitespace/break */}
+                          // Render string directly
+                          <span className="whitespace-pre-wrap break-words text-xs">{/* Added text-xs for consistency */}
                             {evidenceString}
                           </span>
                         )}
@@ -139,7 +171,8 @@ const ChatMessage = ({ message, onToggle, onEvidenceClick }) => {
   );
 };
 
-const ChatBot = ({ paperId, data, source, relevantId, onResponse, onEvidenceClick }) => {
+// Update ChatBot component to accept and pass down canHighlightEvidence
+const ChatBot = ({ paperId, data, source, relevantId, onResponse, onEvidenceClick, canHighlightEvidence }) => {
   const [question, setQuestion] = useState('');
   const [conversation, setConversation] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -181,7 +214,7 @@ const ChatBot = ({ paperId, data, source, relevantId, onResponse, onEvidenceClic
         content: data         // Matches ChatRequest.content
       };
 
-      console.log("Sending chat payload to /api/chat:", JSON.stringify(payload, null, 2)); // Log the exact payload being sent
+      // console.log("Sending chat payload to /api/chat:", JSON.stringify(payload, null, 2)); // Log the exact payload being sent
 
       // Ensure the endpoint URL is correct (without trailing slash if router expects that)
       const response = await api.post('/api/chat', payload); // Send payload as JSON body
@@ -253,6 +286,8 @@ const ChatBot = ({ paperId, data, source, relevantId, onResponse, onEvidenceClic
             message={msg}
             onToggle={() => toggleMessage(index)}
             onEvidenceClick={onEvidenceClick}
+            // Pass the function down to each message
+            canHighlightEvidence={canHighlightEvidence}
           />
         ))}
         {loading && (
@@ -269,7 +304,7 @@ const ChatBot = ({ paperId, data, source, relevantId, onResponse, onEvidenceClic
       </div>
 
       {/* Input Area */}
-      <div className="flex items-center gap-3 mt-auto border-t border-custom-border pt-4"> {/* Added border-top and padding-top */}
+      <div className="flex items-center gap-3 mt-auto border-custom-border pt-1"> {/* Added border-top and padding-top */}
         <input
           type="text"
           placeholder={`Ask about ${relevantId || 'current paper'}`}
@@ -296,6 +331,7 @@ const ChatBot = ({ paperId, data, source, relevantId, onResponse, onEvidenceClic
   );
 };
 
+// Update PropTypes for ChatBot
 ChatBot.propTypes = {
   paperId: PropTypes.string,
   data: PropTypes.string,
@@ -303,17 +339,20 @@ ChatBot.propTypes = {
   relevantId: PropTypes.string,
   onResponse: PropTypes.func,
   onEvidenceClick: PropTypes.func,
+  canHighlightEvidence: PropTypes.func, // Add prop type for the function
 };
 
+// Update PropTypes for ChatMessage
 ChatMessage.propTypes = {
   message: PropTypes.shape({
     question: PropTypes.string,
     answer: PropTypes.string,
-    evidence: PropTypes.arrayOf(PropTypes.oneOfType([PropTypes.string, PropTypes.object])), // Updated evidence prop type
+    evidence: PropTypes.arrayOf(PropTypes.oneOfType([PropTypes.string, PropTypes.object])),
     expanded: PropTypes.bool,
   }).isRequired,
   onToggle: PropTypes.func.isRequired,
   onEvidenceClick: PropTypes.func.isRequired,
+  canHighlightEvidence: PropTypes.func.isRequired, // Add prop type for the function
 };
 
 export default ChatBot;

@@ -1,6 +1,7 @@
 import { ChevronsDownUp, ChevronsUpDown } from 'lucide-react';
 import queryString from 'query-string';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+// Added useCallback
 // Removed unused imports if any
 import { useLocation, useNavigate } from 'react-router-dom';
 
@@ -121,24 +122,52 @@ const DetailPage = () => {
     setSelectedReferenceInfo(refInfo);
   };
 
+  // Function to check if evidence text can be found in the relevant content
+  const canHighlightEvidence = useCallback((evidenceText) => {
+    if (typeof evidenceText !== 'string') return false;
+
+    // Clean surrounding quotes (redundant if cleaned in ChatMessage, but safe)
+    const cleanedText = evidenceText.trim().replace(/^['"]|['"]$/g, '');
+    if (!cleanedText) return false;
+
+    let contentToCheck = '';
+    if (source === 'CTG') {
+        // Check selected reference's full text if available
+        if (selectedReferenceInfo && selectedReferenceInfo.fullText) {
+            contentToCheck = selectedReferenceInfo.fullText;
+        } else {
+            // Cannot highlight if no reference selected/loaded
+            return false;
+        }
+    } else { // PM/PMC source
+        contentToCheck = fullText;
+    }
+
+    if (!contentToCheck) return false;
+
+    // Case-insensitive check
+    // Using includes for simplicity, could use regex for more complex matching if needed
+    return contentToCheck.toLowerCase().includes(cleanedText.toLowerCase());
+  }, [source, fullText, selectedReferenceInfo]); // Dependencies for the check
 
   const scrollToEvidence = (evidenceText) => {
-    // If a reference is selected in CTG mode, try highlighting there first
+    // Ensure evidenceText is a string before proceeding
+    if (typeof evidenceText !== 'string' || !evidenceText) {
+        console.warn("scrollToEvidence called with invalid text:", evidenceText);
+        return;
+    }
+    // Clean text just in case it wasn't cleaned before calling
+    const cleanedText = evidenceText.trim().replace(/^['"]|['"]$/g, '');
+    if (!cleanedText) return;
+
     if (source === 'CTG' && selectedReferenceInfo) {
-        const highlightedInRef = referenceListRef.current?.highlightEvidenceInSelected?.(evidenceText);
-        // If highlightEvidenceInSelected returns false or isn't implemented, maybe fall back?
-        // For now, assume it handles highlighting within its expanded view.
-        if (highlightedInRef) return;
-    }
-    // Otherwise, use the original logic
-    else if (source === 'CTG') {
-        // If no specific reference selected, maybe highlight in the reference list overview?
-        // Or maybe this case shouldn't happen if evidence comes from selected ref/structured info?
-        // For now, keep the original call which might target the list generally.
-        referenceListRef.current?.highlightEvidence?.(evidenceText);
+        // Attempt highlight in the selected reference's view
+        referenceListRef.current?.highlightEvidenceInSelected?.(cleanedText);
     } else if (source !== 'CTG') {
-        fullTextRef.current?.highlightEvidence?.(evidenceText);
+        // Attempt highlight in the main full text view
+        fullTextRef.current?.highlightEvidence?.(cleanedText);
     }
+     // If source is CTG but no reference selected, highlighting isn't applicable to a specific text view
   };
 
   const ctgReferences = structuredInfo?.protocolSection?.referencesModule?.references || [];
@@ -214,8 +243,8 @@ const DetailPage = () => {
       {/* 메타데이터 카드 - PMC/PM */}
       {source !== 'CTG' && metadata.title !== 'No Title Available' && (
         <div className="bg-custom-bg-soft border border-custom-border p-5 rounded-2xl shadow-lg mb-8">
-           <p className="text-xs text-custom-text-subtle mb-1">from PubMed</p>
-           <h2 className="text-lg font-semibold text-custom-blue-deep mb-1">
+          <p className="text-xs text-custom-text-subtle mb-1">from PubMed</p>
+          <h2 className="text-lg font-semibold text-custom-blue-deep mb-1">
             {metadata.title}
           </h2>
           {metadata.authors?.length > 0 && (
@@ -321,6 +350,8 @@ const DetailPage = () => {
                 console.log('Chat response evidence:', evidence)
               }
               onEvidenceClick={scrollToEvidence}
+              // Pass the checking function down
+              canHighlightEvidence={canHighlightEvidence}
             />
           </div>
         </div>
