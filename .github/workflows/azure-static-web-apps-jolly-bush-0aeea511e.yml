@@ -41,8 +41,6 @@ jobs:
       - name: Close Pull Request
         id: closepullrequest
         uses: Azure/static-web-apps-deploy@v1
-        env:
-          REACT_APP_API_URL: https://clinical-trials-hub-backend.azurewebsites.net
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_JOLLY_BUSH_0AEEA511E }}
           action: "close"
