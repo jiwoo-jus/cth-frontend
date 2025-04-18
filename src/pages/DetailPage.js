@@ -1,249 +1,276 @@
 import { ChevronsDownUp, ChevronsUpDown } from 'lucide-react';
 import queryString from 'query-string';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-// Added useCallback
-// Removed unused imports if any
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import ChatBot from '../components/ChatBot';
 import FullText from '../components/FullText';
 import ReferenceList from '../components/ReferenceList';
-// Import the new component
 import StructuredInfoTabs from '../components/StructuredInfoTabs';
 
+// Use consistent environment variable access
+// eslint-disable-next-line no-undef
 const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5050';
-
-// getPmcidFromPmid function removed - moved to ReferenceList.js
 
 const DetailPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { paperId, pmcid, nctId, source } = queryString.parse(location.search);
+  const { paperId, pmcid: pmcidFromUrl, nctId: nctIdFromUrl, source } = queryString.parse(location.search);
 
-  const metadata = location.state?.metadata || {
-    title: 'No Title Available',
-    pmid: paperId || '',
-    pmcid: pmcid || '',
-    nctId: nctId || '',
-    doi: '',
-    studyType: '',
-    authors: [],
-    pubDate: '',
-    structured_info: null,
-  };
-
+  // --- State ---
   const [structuredInfo, setStructuredInfo] = useState(null);
-  const [fullText, setFullText] = useState(''); // For PMC source full text
+  const [fullText, setFullText] = useState('');
   const [fullTextExpanded, setFullTextExpanded] = useState(false);
   const [selectedReferenceInfo, setSelectedReferenceInfo] = useState(null); // { pmcid: string, fullText: string } | null
+  const [isLoading, setIsLoading] = useState(false); // Loading state for API calls
+  const [error, setError] = useState(null); // Error state
 
+  // --- Refs ---
   const fullTextRef = useRef(null);
-  const referenceListRef = useRef(null); // Ref for ReferenceList component
+  const referenceListRef = useRef(null);
 
+  // --- Metadata Extraction ---
+  // Prioritize data from location state, fallback to URL params or defaults
+  const metadata = location.state?.metadata || {};
+  const effectivePmcid = pmcidFromUrl || metadata.pmcid || null;
+  const effectiveNctId = nctIdFromUrl || metadata.nctId || null;
+  const effectivePaperId = paperId || metadata.pmid || null; // Assuming paperId often corresponds to pmid
+
+  // --- Effects ---
   useEffect(() => {
-    // Reset selected reference when source/id changes
+    console.log('[DetailPage] Effect triggered. Source:', source, 'PMCID:', effectivePmcid, 'NCTID:', effectiveNctId);
+    // Reset state on ID/source change
     setSelectedReferenceInfo(null);
+    setStructuredInfo(null);
+    setFullText('');
+    setFullTextExpanded(false);
+    setError(null);
+    setIsLoading(true);
 
-    // --- PMC Source Logic ---
-    if ((source === 'PM' || source === 'PMC') && (pmcid || metadata.pmcid)) {
-      const currentPmcid = pmcid || metadata.pmcid;
-      // Fetch Full Text HTML for PMC
-      fetch(`${BASE_URL}/api/paper/pmc_full_text_html?pmcid=${currentPmcid}`)
-        .then((res) => {
-          if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-          return res.text();
-         })
-        .then((htmlString) => {
-          const parser = new DOMParser();
-          const doc = parser.parseFromString(htmlString, 'text/html');
-          const article = doc.querySelector("#main-content > article");
-          if (article) {
-            article.querySelectorAll("ul.d-buttons.inline-list").forEach(el => el.remove());
-            article.querySelectorAll("section").forEach(section => {
-              if (section.getAttribute("aria-label") === "Article citation and metadata") {
-                section.remove();
-              }
-            });
-            setFullText(article.outerHTML);
-            setFullTextExpanded(true);
-          } else {
-            setFullText(htmlString);
-            if (htmlString) setFullTextExpanded(true);
-          }
-        })
-        .catch(error => {
-            console.error("Error fetching PMC full text HTML:", error);
-            setFullText("<p>Error loading full text.</p>");
-            setFullTextExpanded(true);
-        });
+    const fetchPmcData = async (pmcidToFetch) => {
+      try {
+        console.log(`[DetailPage] Fetching PMC data for PMCID: ${pmcidToFetch}`);
+        // Fetch Full Text HTML
+        const textResponse = await fetch(`${BASE_URL}/api/paper/pmc_full_text_html?pmcid=${pmcidToFetch}`);
+        if (!textResponse.ok) throw new Error(`HTTP error fetching full text! status: ${textResponse.status}`);
+        const htmlString = await textResponse.text();
 
-      // Fetch Structured Info for PMC
-      fetch(`${BASE_URL}/api/paper/structured_info?pmcid=${currentPmcid}`)
-        .then((res) => {
-            if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-            return res.json();
-        })
-        .then((data) => setStructuredInfo(data.structured_info))
-        .catch(error => {
-            console.error("Error fetching structured info:", error);
-            setStructuredInfo(null);
-        });
-    }
-    // --- CTG Source Logic ---
-    else if (source === 'CTG') {
-        if (metadata.structured_info) {
-            console.log("Using structured_info from location state for CTG:", metadata.structured_info);
+        // Basic HTML processing (consider moving to a utility if complex)
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(htmlString, 'text/html');
+        const article = doc.querySelector("#main-content > article");
+        let processedHtml = htmlString; // Default to original string
+        if (article) {
+          article.querySelectorAll("ul.d-buttons.inline-list, section[aria-label='Article citation and metadata']").forEach(el => el.remove());
+          processedHtml = article.outerHTML;
+        }
+        setFullText(processedHtml);
+        setFullTextExpanded(!!processedHtml); // Expand if content exists
+
+        // Fetch Structured Info
+        const infoResponse = await fetch(`${BASE_URL}/api/paper/structured_info?pmcid=${pmcidToFetch}`);
+        if (!infoResponse.ok) throw new Error(`HTTP error fetching structured info! status: ${infoResponse.status}`);
+        const infoData = await infoResponse.json();
+        setStructuredInfo(infoData.structured_info);
+
+      } catch (fetchError) {
+        console.error("[DetailPage] Error fetching PMC data:", fetchError);
+        setError(fetchError.message || 'Failed to load paper details.');
+        setFullText("<p>Error loading full text.</p>"); // Show error in content area
+        setFullTextExpanded(true);
+      }
+    };
+
+    const fetchCtgData = async (nctIdToFetch) => {
+      try {
+        console.log(`[DetailPage] Fetching CTG data for NCTID: ${nctIdToFetch}`);
+        const response = await fetch(`${BASE_URL}/api/paper/ctg_detail?nctId=${nctIdToFetch}`);
+        if (!response.ok) throw new Error(`HTTP error fetching CTG detail! status: ${response.status}`);
+        const data = await response.json();
+        setStructuredInfo(data.structured_info);
+        setFullText(''); // No separate full text for CTG main view
+        setFullTextExpanded(false);
+      } catch (fetchError) {
+        console.error("[DetailPage] Error fetching CTG data:", fetchError);
+        setError(fetchError.message || 'Failed to load trial details.');
+      }
+    };
+
+    // --- Determine Data Source and Fetch ---
+    const fetchData = async () => {
+      setIsLoading(true); // Ensure loading is true at the start
+      try {
+        if ((source === 'PM' || source === 'PMC') && effectivePmcid) {
+          await fetchPmcData(effectivePmcid);
+        } else if (source === 'CTG') {
+          console.log("JW metadata.structured_info: ", metadata.structured_info);
+          console.log("JW effectiveNctId: ", effectiveNctId);
+          // Prioritize structured_info from location state if available
+          if (metadata.structured_info) {
+            console.log("[DetailPage] Using structured_info from location state for CTG.");
             setStructuredInfo(metadata.structured_info);
             setFullText('');
             setFullTextExpanded(false);
-        } else if (nctId) {
-            console.warn("Fetching CTG detail as fallback - was it not passed in location.state?");
-            fetch(`${BASE_URL}/api/paper/ctg_detail?nctId=${nctId}`)
-                .then((res) => {
-                    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-                    return res.json();
-                })
-                .then((data) => {
-                    setStructuredInfo(data.structured_info);
-                    setFullText('');
-                    setFullTextExpanded(false);
-                })
-                .catch(error => {
-                    console.error("Error fetching CTG detail:", error);
-                    setStructuredInfo(null);
-                });
+          } else if (effectiveNctId) {
+            // Fetch only if not passed via state
+            console.warn("[DetailPage] Fetching CTG detail as fallback - consider passing via location.state from SearchPage.");
+            await fetchCtgData(effectiveNctId);
+          } else {
+            console.error("[DetailPage] CTG source selected but no NCT ID found.");
+            setError("No ClinicalTrials.gov ID provided.");
+          }
+        } else {
+          console.warn("[DetailPage] No valid source or ID found to fetch data.");
+          setError("Invalid source or ID specified.");
         }
-    }
+      } catch (err) {
+        // Errors inside fetch functions should already set the error state
+        console.error("[DetailPage] Top-level fetch error:", err);
+        if (!error) { // Set a generic error if not already set
+          setError("An unexpected error occurred while loading details.");
+        }
+      } finally {
+        setIsLoading(false); // Set loading false after fetch attempt (success or fail)
+      }
+    };
 
-  }, [metadata.pmcid, nctId, source, metadata.structured_info, pmcid]); // metadata.structured_info dependency might cause re-runs if it's fetched async, review if needed
+    fetchData(); // Call the async function
 
-  // Callback for ReferenceList to update selected reference state
-  const handleActiveReferenceChange = (refInfo) => {
+  }, [source, effectivePmcid, effectiveNctId, metadata.structured_info]); // Dependencies
+
+
+  // --- Callbacks ---
+  const handleActiveReferenceChange = useCallback((refInfo) => {
+    console.log('[DetailPage] Active reference changed:', refInfo?.pmcid);
     setSelectedReferenceInfo(refInfo);
-  };
+  }, []);
 
-  // Function to check if evidence text can be found in the relevant content
   const canHighlightEvidence = useCallback((evidenceText) => {
-    if (typeof evidenceText !== 'string') return false;
-
-    // Clean surrounding quotes (redundant if cleaned in ChatMessage, but safe)
+    if (typeof evidenceText !== 'string' || !evidenceText) return false;
     const cleanedText = evidenceText.trim().replace(/^['"]|['"]$/g, '');
     if (!cleanedText) return false;
 
     let contentToCheck = '';
     if (source === 'CTG') {
-        // Check selected reference's full text if available
-        if (selectedReferenceInfo && selectedReferenceInfo.fullText) {
-            contentToCheck = selectedReferenceInfo.fullText;
-        } else {
-            // Cannot highlight if no reference selected/loaded
-            return false;
-        }
+      // Only check selected reference's full text for CTG
+      contentToCheck = selectedReferenceInfo?.fullText || '';
     } else { // PM/PMC source
-        contentToCheck = fullText;
+      contentToCheck = fullText;
     }
 
     if (!contentToCheck) return false;
-
     // Case-insensitive check
-    // Using includes for simplicity, could use regex for more complex matching if needed
     return contentToCheck.toLowerCase().includes(cleanedText.toLowerCase());
-  }, [source, fullText, selectedReferenceInfo]); // Dependencies for the check
+  }, [source, fullText, selectedReferenceInfo]);
 
-  const scrollToEvidence = (evidenceText) => {
-    // Ensure evidenceText is a string before proceeding
+  const scrollToEvidence = useCallback((evidenceText) => {
     if (typeof evidenceText !== 'string' || !evidenceText) {
-        console.warn("scrollToEvidence called with invalid text:", evidenceText);
-        return;
+      console.warn("[DetailPage] scrollToEvidence called with invalid text:", evidenceText);
+      return;
     }
-    // Clean text just in case it wasn't cleaned before calling
     const cleanedText = evidenceText.trim().replace(/^['"]|['"]$/g, '');
     if (!cleanedText) return;
 
-    if (source === 'CTG' && selectedReferenceInfo) {
-        // Attempt highlight in the selected reference's view
-        referenceListRef.current?.highlightEvidenceInSelected?.(cleanedText);
-    } else if (source !== 'CTG') {
-        // Attempt highlight in the main full text view
-        fullTextRef.current?.highlightEvidence?.(cleanedText);
-    }
-     // If source is CTG but no reference selected, highlighting isn't applicable to a specific text view
-  };
+    console.log(`[DetailPage] Attempting to scroll to evidence: "${cleanedText.substring(0, 50)}..."`);
 
+    if (source === 'CTG') {
+      if (selectedReferenceInfo && referenceListRef.current) {
+        console.log('[DetailPage] Scrolling within selected CTG reference.');
+        referenceListRef.current.highlightEvidenceInSelected?.(cleanedText);
+      } else {
+        console.log('[DetailPage] Cannot scroll for CTG: No reference selected or ref component not ready.');
+      }
+    } else if (fullTextRef.current) { // PM/PMC source
+      console.log('[DetailPage] Scrolling within main PMC full text.');
+      fullTextRef.current.highlightEvidence?.(cleanedText);
+    } else {
+       console.log('[DetailPage] Cannot scroll: Full text component not ready.');
+    }
+  }, [source, selectedReferenceInfo]); // Dependencies
+
+  // --- Derived Data ---
   const ctgReferences = structuredInfo?.protocolSection?.referencesModule?.references || [];
 
-  // --- Prepare CTG Metadata for display (logic remains the same) ---
-  let ctgDetailsRowItems = [];
-  if (source === 'CTG' && structuredInfo) {
-    const studyType = structuredInfo.protocolSection?.designModule?.studyType;
-    const referencesCount = ctgReferences.length;
-    const status = structuredInfo.protocolSection?.statusModule?.overallStatus;
-    const hasResults = structuredInfo.hasResultsData;
+  // Prepare CTG Metadata for display
+  const getCtgDisplayDetails = () => {
+    if (source !== 'CTG' || !structuredInfo) return { detailsRowItems: [], organization: null, startDate: null, completionDate: null };
 
-    if (studyType) ctgDetailsRowItems.push(studyType);
-    if (referencesCount > 0) ctgDetailsRowItems.push(<strong key="ref">{referencesCount} references</strong>); else ctgDetailsRowItems.push('0 references');
-    if (status) ctgDetailsRowItems.push(status);
-    if (hasResults !== undefined) {
-        if (hasResults) ctgDetailsRowItems.push(<strong key="res">has results</strong>); else ctgDetailsRowItems.push('no results');
-    }
-  }
-  const ctgOrganization = structuredInfo?.protocolSection?.identificationModule?.organization?.fullName;
-  const ctgStartDate = structuredInfo?.protocolSection?.statusModule?.startDateStruct?.date;
-  const ctgCompletionDateInfo = structuredInfo?.protocolSection?.statusModule?.completionDateStruct;
-  const ctgCompletionDate = ctgCompletionDateInfo?.type === 'ACTUAL' ? ctgCompletionDateInfo?.date : null;
-  // --- End CTG Metadata Preparation ---
+    const protocolSection = structuredInfo.protocolSection;
+    const detailsRowItems = [
+      protocolSection?.designModule?.studyType,
+      ctgReferences.length > 0 ? <strong key="ref">{`${ctgReferences.length} reference${ctgReferences.length !== 1 ? 's' : ''}`}</strong> : '0 references',
+      protocolSection?.statusModule?.overallStatus,
+      structuredInfo.hasResultsData !== undefined ? (structuredInfo.hasResultsData ? <strong key="res">has results</strong> : 'no results') : null,
+    ].filter(Boolean);
+
+    const organization = protocolSection?.identificationModule?.organization?.fullName;
+    const startDate = protocolSection?.statusModule?.startDateStruct?.date;
+    const completionDateInfo = protocolSection?.statusModule?.completionDateStruct;
+    const completionDate = completionDateInfo?.type === 'ACTUAL' ? completionDateInfo?.date : null;
+
+    return { detailsRowItems, organization, startDate, completionDate };
+  };
+  const { detailsRowItems: ctgDetailsRowItems, organization: ctgOrganization, startDate: ctgStartDate, completionDate: ctgCompletionDate } = getCtgDisplayDetails();
 
   // Determine ChatBot props based on source and selected reference
-  const getChatBotProps = () => {
-      if (source === 'CTG') {
-          if (selectedReferenceInfo) {
-              // Case 2: CTG source, reference selected
-              return {
-                  paperId: selectedReferenceInfo.pmcid, // Keep for potential use
-                  data: selectedReferenceInfo.fullText, // Use reference full text
-                  source: 'PM', // Treat selected reference as a PubMed paper
-                  relevantId: selectedReferenceInfo.pmcid, // ID is the PMCID
-                  key: `chatbot-${selectedReferenceInfo.pmcid}`
-              };
-          } else {
-              // Case 1: CTG source, no reference selected
-              return {
-                  paperId: nctId, // Keep for potential use
-                  data: structuredInfo ? JSON.stringify(structuredInfo, null, 2) : null, // Use structured info (pretty-printed)
-                  source: 'CTG', // Source is CTG
-                  relevantId: nctId, // ID is the NCT ID
-                  key: `chatbot-${nctId}`
-              };
-          }
+  const getChatBotProps = useCallback(() => {
+    if (source === 'CTG') {
+      if (selectedReferenceInfo) {
+        // Case 2: CTG source, reference selected
+        console.log('[DetailPage] ChatBot using selected CTG reference:', selectedReferenceInfo.pmcid);
+        return {
+          paperId: selectedReferenceInfo.pmcid, // Use PMCID of the reference
+          data: selectedReferenceInfo.fullText,
+          source: 'PM', // Treat as PubMed source for chat context
+          relevantId: selectedReferenceInfo.pmcid,
+          key: `chatbot-ref-${selectedReferenceInfo.pmcid}` // Unique key per reference
+        };
       } else {
-          // Default: PM/PMC source
-          const currentPmcid = pmcid || metadata.pmcid; // Ensure we have the pmcid
-          return {
-              paperId: currentPmcid || paperId, // Use PMCID or PMID
-              data: fullText, // Use main full text
-              source: source || 'PM', // Use original source or default to PM
-              relevantId: currentPmcid, // ID is the PMCID
-              key: `chatbot-${currentPmcid || paperId}`
-          };
+        // Case 1: CTG source, no reference selected
+        console.log('[DetailPage] ChatBot using main CTG data:', effectiveNctId);
+        return {
+          paperId: effectiveNctId,
+          data: structuredInfo ? JSON.stringify(structuredInfo, null, 2) : null, // Use structured info
+          source: 'CTG',
+          relevantId: effectiveNctId,
+          key: `chatbot-ctg-${effectiveNctId}` // Unique key for main CTG
+        };
       }
-  };
+    } else {
+      // Default: PM/PMC source
+      console.log('[DetailPage] ChatBot using main PMC/PM data:', effectivePmcid || effectivePaperId);
+      return {
+        paperId: effectivePmcid || effectivePaperId, // Use PMCID or fallback to paperId (PMID)
+        data: fullText,
+        source: source || 'PM',
+        relevantId: effectivePmcid, // Primarily use PMCID if available
+        key: `chatbot-pmc-${effectivePmcid || effectivePaperId}` // Unique key
+      };
+    }
+  }, [source, selectedReferenceInfo, effectiveNctId, structuredInfo, effectivePmcid, effectivePaperId, fullText]); // Dependencies
 
   const chatBotProps = getChatBotProps();
 
-
+  // --- Render ---
   return (
     <div className="px-6 py-8 max-w-screen-2xl mx-auto">
+      {/* Header */}
       <h1
         className="text-3xl font-bold text-black tracking-tight text-center cursor-pointer mb-6 hover:opacity-80 transition"
-        onClick={() => navigate(-1)}
+        onClick={() => navigate(-1)} // Go back to previous page (likely SearchPage)
+        title="Go back to search results"
       >
         Clinical Trials Hub
       </h1>
 
-      {/* 메타데이터 카드 - PMC/PM */}
-      {source !== 'CTG' && metadata.title !== 'No Title Available' && (
+      {/* Loading/Error State */}
+      {isLoading && <div className="text-center text-gray-600 my-4">Loading details...</div>}
+      {error && <div className="text-center text-red-600 my-4 bg-red-100 border border-red-400 p-3 rounded">Error: {error}</div>}
+
+      {/* Metadata Card - PMC/PM */}
+      {source !== 'CTG' && metadata.title && metadata.title !== 'No Title Available' && !isLoading && !error && (
         <div className="bg-custom-bg-soft border border-custom-border p-5 rounded-2xl shadow-lg mb-8">
-          <p className="text-xs text-custom-text-subtle mb-1">from PubMed</p>
+          <p className="text-xs text-custom-text-subtle mb-1">from PubMed/PMC</p>
           <h2 className="text-lg font-semibold text-custom-blue-deep mb-1">
             {metadata.title}
           </h2>
@@ -263,12 +290,11 @@ const DetailPage = () => {
                     href={`https://pubmed.ncbi.nlm.nih.gov/${metadata.pmid}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-custom-blue hover:underline"
+                    className="text-custom-blue hover:underline mr-2" // Added margin
                 >
-                    {metadata.pmid}
+                    PMID: {metadata.pmid}
                 </a>
             )}
-            {metadata.pmid && metadata.pmcid && <span className="mx-1">|</span>}
             {metadata.pmcid && (
                 <a
                     href={`https://www.ncbi.nlm.nih.gov/pmc/articles/${metadata.pmcid}/`}
@@ -276,7 +302,7 @@ const DetailPage = () => {
                     rel="noopener noreferrer"
                     className="text-custom-blue hover:underline"
                 >
-                    {metadata.pmcid}
+                    PMCID: {metadata.pmcid}
                 </a>
             )}
           </p>
@@ -288,12 +314,12 @@ const DetailPage = () => {
         </div>
       )}
 
-       {/* 메타데이터 카드 - CTG */}
-      {source === 'CTG' && structuredInfo && (
+       {/* Metadata Card - CTG */}
+      {source === 'CTG' && structuredInfo && !isLoading && !error && (
         <div className="bg-custom-bg-soft border border-custom-border p-5 rounded-2xl shadow-lg mb-8">
             <p className="text-xs text-custom-text-subtle mb-1">from ClinicalTrials.gov</p>
             <h2 className="text-lg font-semibold text-custom-blue-deep mb-1">
-                {structuredInfo.protocolSection?.identificationModule?.briefTitle || metadata.title}
+                {structuredInfo.protocolSection?.identificationModule?.briefTitle || metadata.title || 'No Title Available'}
             </h2>
             {(ctgOrganization || ctgStartDate || ctgCompletionDate) && (
               <p className="text-sm text-custom-text mt-1">
@@ -316,103 +342,111 @@ const DetailPage = () => {
             )}
             <p className="text-xs text-custom-text-subtle mt-1">
                 <a
-                    href={`https://clinicaltrials.gov/study/${nctId}`}
+                    href={`https://clinicaltrials.gov/study/${effectiveNctId}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-custom-blue hover:underline"
                 >
-                    {nctId}
+                    {effectiveNctId}
                 </a>
             </p>
         </div>
       )}
 
-      {/* 챗봇 & 구조화 정보 영역 */}
-      <div className="grid grid-cols-1 md:grid-cols-10 gap-6 mb-8 md:items-start">
-        {/* ChatBot Column */}
-        <div className="md:col-span-4 border border-custom-border rounded-2xl shadow-lg p-5 bg-white flex flex-col">
-          {/* ChatBot Heading */}
-          <div className="flex justify-between items-center border-b border-custom-border pb-2 mb-2">
-             <h2 className="text-xl font-semibold text-custom-blue-deep">
-                ChatBot
-             </h2>
-          </div>
-          {/* ChatBot Component Wrapper - Let it grow naturally */}
-          {/* Removed flex-1 min-h-0 as parent no longer has fixed height */}
-          <div>
-            <ChatBot
-              key={chatBotProps.key}
-              paperId={chatBotProps.paperId}
-              data={chatBotProps.data}
-              source={chatBotProps.source}
-              relevantId={chatBotProps.relevantId}
-              onResponse={({ evidence }) =>
-                console.log('Chat response evidence:', evidence)
-              }
-              onEvidenceClick={scrollToEvidence}
-              // Pass the checking function down
-              canHighlightEvidence={canHighlightEvidence}
-            />
-          </div>
-        </div>
-
-        {/* Structured Info Column */}
-        <div className="md:col-span-6 border border-custom-border rounded-2xl shadow-lg p-5 bg-white">
-          <h2 className="text-xl font-semibold text-custom-blue-deep border-b border-custom-border pb-2 mb-2">
-            Structured Information
-          </h2>
-          {structuredInfo ? (
-            // ---> Problem likely originates here or within this component <---
-            <StructuredInfoTabs structuredInfo={structuredInfo} />
-          ) : (
-            <div className="flex justify-center items-center text-custom-text-subtle h-28 text-sm">
-              Loading structured info...
+      {/* Main Content Grid (ChatBot & Structured Info) */}
+      {!isLoading && !error && (structuredInfo || fullText) && (
+        <div className="grid grid-cols-1 md:grid-cols-10 gap-6 mb-8 md:items-start"> {/* Added mb-8 */}
+          {/* ChatBot Column */}
+          <div className="md:col-span-4 border border-custom-border rounded-2xl shadow-lg p-5 bg-white flex flex-col">
+            <div className="flex justify-between items-center border-b border-custom-border pb-2 mb-2">
+               <h2 className="text-xl font-semibold text-custom-blue-deep">
+                  ChatBot
+               </h2>
             </div>
-          )}
-        </div>
-      </div>
-
-      {/* References (CTG) / Full Text (PMC) 영역 */}
-      <div className="border border-custom-border rounded-2xl shadow-lg p-5 mb-8 bg-white">
-        {source === 'CTG' ? (
-          // Pass the callback to ReferenceList
-          <ReferenceList
-            ref={referenceListRef}
-            references={ctgReferences}
-            onActiveReferenceChange={handleActiveReferenceChange} // Pass the callback
-          />
-        ) : ( // --- PMC Full Text Section ---
-          <>
-            <div className="flex justify-between items-center mb-2">
-              {/* Corrected h2 tag structure */}
-              <h2 className="text-xl font-semibold text-custom-blue-deep border-b border-custom-border pb-2">
-                Full Text
-              </h2>
-              {fullText && (
-                <button
-                    onClick={() => setFullTextExpanded((prev) => !prev)}
-                    className="p-1.5 text-custom-blue-deep rounded-full hover:bg-custom-blue-lightest transition-colors"
-                    title={fullTextExpanded ? 'Collapse' : 'Expand'}
-                >
-                    {fullTextExpanded ? <ChevronsDownUp size={18} strokeWidth={2.5}/> : <ChevronsUpDown size={18} strokeWidth={2.5}/>}
-                </button>
+            <div>
+              {/* Render ChatBot only when necessary data is available */}
+              {chatBotProps.data ? (
+                  <ChatBot
+                    key={chatBotProps.key} // Key ensures re-mount on source/ID change
+                    paperId={chatBotProps.paperId}
+                    data={chatBotProps.data}
+                    source={chatBotProps.source}
+                    relevantId={chatBotProps.relevantId}
+                    onResponse={({ evidence }) =>
+                      console.log('[DetailPage] Chat response evidence:', evidence)
+                    }
+                    onEvidenceClick={scrollToEvidence}
+                    canHighlightEvidence={canHighlightEvidence}
+                  />
+              ) : (
+                 <div className="text-center text-custom-text-subtle p-4">ChatBot data unavailable.</div>
               )}
             </div>
-            {fullTextExpanded && fullText ? (
-              <FullText ref={fullTextRef} fullText={fullText} />
-            ) : fullTextExpanded && !fullText ? (
-                <div className="flex justify-center items-center text-custom-text-subtle h-28 text-sm">
-                    Loading full text...
-                </div>
-            ) : null}
-            {!fullText && !fullTextExpanded && (
-                <p className="text-custom-text-subtle text-sm">Full text is collapsed or not available.</p>
+          </div>
+
+          {/* Right Column (Structured Info ONLY) */}
+          <div className="md:col-span-6 space-y-6">
+            {/* Structured Info Section */}
+            {structuredInfo && (
+              <div className="border border-custom-border rounded-2xl shadow-lg p-5 bg-white">
+                <h2 className="text-xl font-semibold text-custom-blue-deep border-b border-custom-border pb-2 mb-4"> {/* Increased margin */}
+                  Structured Information
+                </h2>
+                <StructuredInfoTabs structuredInfo={structuredInfo} />
+              </div>
             )}
-          </>
-        )}
-      </div>
+            {/* Removed References/Full Text from here */}
+          </div>
+        </div>
+      )}
+
+      {/* References (CTG) / Full Text (PMC) Section - Moved outside the grid */}
+      {!isLoading && !error && (structuredInfo || fullText) && (
+        <div className="border border-custom-border rounded-2xl shadow-lg p-5 bg-white mb-8"> {/* Added mb-8 */}
+          {source === 'CTG' ? (
+            <ReferenceList
+              ref={referenceListRef}
+              references={ctgReferences}
+              onActiveReferenceChange={handleActiveReferenceChange}
+            />
+          ) : ( // --- PMC Full Text Section ---
+            <>
+              <div className="flex justify-between items-center mb-4"> {/* Increased margin */}
+                <h2 className="text-xl font-semibold text-custom-blue-deep border-b border-custom-border pb-2 flex-grow"> {/* Title takes available space */}
+                  Full Text
+                </h2>
+                {fullText && ( // Only show button if there is text
+                  <button
+                      onClick={() => setFullTextExpanded((prev) => !prev)}
+                      className="p-1.5 text-custom-blue-deep rounded-full hover:bg-custom-blue-lightest transition-colors ml-2" // Added margin
+                      title={fullTextExpanded ? 'Collapse' : 'Expand'}
+                      aria-expanded={fullTextExpanded}
+                  >
+                      {fullTextExpanded ? <ChevronsDownUp size={18} strokeWidth={2.5}/> : <ChevronsUpDown size={18} strokeWidth={2.5}/>}
+                  </button>
+                )}
+              </div>
+              {fullTextExpanded && fullText ? (
+                <FullText ref={fullTextRef} fullText={fullText} />
+              ) : fullTextExpanded && !fullText ? (
+                  <div className="flex justify-center items-center text-custom-text-subtle h-28 text-sm">
+                      Loading full text...
+                  </div>
+              ) : null}
+              {!fullTextExpanded && fullText && ( // Show message only if text exists but is collapsed
+                  <p className="text-custom-text-subtle text-sm">Full text is collapsed.</p>
+              )}
+               {!fullText && ( // Show message if no full text was loaded/found
+                  <p className="text-custom-text-subtle text-sm">Full text not available.</p>
+              )}
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 };
 
-export default DetailPage;
+// Wrap with memo if DetailPage itself doesn't rely heavily on context changes
+// export default React.memo(DetailPage);
+export default DetailPage; // Keep as default export for now

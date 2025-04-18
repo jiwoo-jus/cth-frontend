@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
-import React, { useEffect, useState } from 'react';
-import { PanelLeft, PanelRight } from 'lucide-react'; // Import icons
+import React, { useEffect, useState, useCallback } from 'react'; // Added useCallback
+import { PanelLeft, PanelRight, X } from 'lucide-react'; // Added X icon for closing
 
 // Helper function to detect and linkify URLs and NCT IDs
 const linkify = (text) => {
@@ -63,6 +63,7 @@ const DetailSidebar = ({
   defaultOpen = false,
   expandedWidth = '30%',
   collapsedWidth = '3rem', // Adjusted for icon visibility
+  onClose, // Callback when user explicitly closes the sidebar
 }) => {
   // Local state to control sidebar open/closed status
   const [isOpen, setIsOpen] = useState(defaultOpen);
@@ -71,20 +72,31 @@ const DetailSidebar = ({
   useEffect(() => {
     // selectedResult가 null이 아니고 유효한 객체일 때만 isOpen을 true로 설정
     if (selectedResult) {
+      console.log('[DetailSidebar] Received new selectedResult, opening sidebar.');
       setIsOpen(true);
     }
     // selectedResult가 변경될 때마다 이 effect를 실행
   }, [selectedResult]);
 
   // Function to toggle sidebar open/closed state
-  const toggleSidebar = () => {
+  const toggleSidebar = useCallback(() => {
+    console.log('[DetailSidebar] Toggling sidebar visibility.');
     setIsOpen((prev) => !prev);
-  };
+  }, []);
+
+  // Handle explicit close action
+  const handleClose = useCallback(() => {
+    console.log('[DetailSidebar] Closing sidebar via close button.');
+    setIsOpen(false);
+    if (onClose) {
+      onClose(); // Notify parent component (e.g., SearchPage to set selectedResult to null)
+    }
+  }, [onClose]);
 
   // Render content based on the selected result
   const renderContent = () => {
     if (!selectedResult) {
-      return <p className="text-sm text-gray-500">Select a result to view details.</p>;
+      return isOpen ? <p className="text-sm text-gray-500 p-4">Select a result to view details.</p> : null;
     }
     if (selectedResult.source === 'PM' || selectedResult.source === 'PMC') {
       const abstract = selectedResult.abstract;
@@ -95,7 +107,7 @@ const DetailSidebar = ({
         // Removed H4 title from here
         <div>
           {Object.entries(abstract).map(([key, value]) => (
-            <div key={key} className="mb-2">
+            <div key={key} className="mb-3"> {/* Increased margin */}
               {/* Unified emphasis style: text-base font-semibold */}
               <span className="font-semibold block text-base mb-1">{key}</span>
               {/* Unified content style: text-sm, apply linkify */}
@@ -119,9 +131,9 @@ const DetailSidebar = ({
         DERIVED: 'From PubMed',
       };
       const groupDescriptions = {
-        General: 'These publications are provided voluntarily by the person who enters information about the study.',
-        'Study Results': 'These publications are about the study results.',
-        'From PubMed': 'These publications come from PubMed, a public database of scientific and medical articles.',
+        General: 'Voluntarily provided publications.',
+        'Study Results': 'Publications about study results.',
+        'From PubMed': 'Publications sourced from PubMed.',
         Other: 'Other related publications.',
       };
 
@@ -143,7 +155,7 @@ const DetailSidebar = ({
               <h4 className="font-semibold text-base mb-1">{groupName}</h4>
               {/* Description style remains text-sm */}
               {groupDescriptions[groupName] && (
-                <p className="text-sm text-gray-500 mb-2">{groupDescriptions[groupName]}</p>
+                <p className="text-xs text-gray-500 mb-2">{groupDescriptions[groupName]}</p>
               )}
               {/* Render each reference within the group */}
               {refs.map((ref, index) => (
@@ -170,7 +182,7 @@ const DetailSidebar = ({
         </div>
       );
     } else {
-      return <p className="text-sm text-gray-500">Details not available.</p>;
+      return <p className="text-sm text-gray-500 p-4">Details not available for this source.</p>;
     }
   };
 
@@ -183,48 +195,61 @@ const DetailSidebar = ({
     } else if (selectedResult.source === 'CTG' && selectedResult?.structured_info?.protocolSection?.referencesModule?.references?.length > 0) {
       return 'References';
     }
-    return null;
+    return selectedResult ? 'Details' : null;
   };
 
   const title = getTitle();
 
   return (
-    <div
-      className={`h-screen overflow-y-auto bg-white shadow-lg border-l border-gray-200 sticky top-0 transition-all duration-300 ease-in-out ${isOpen ? 'rounded-r-2xl' : ''} flex-shrink-0`}
-      style={{
-        width: isOpen ? expandedWidth : collapsedWidth,
-      }}
+    <aside // Use aside element for semantic meaning
+      className={`h-screen overflow-hidden bg-white shadow-lg border-l border-gray-200 sticky top-0 transition-all duration-300 ease-in-out flex flex-col flex-shrink-0`}
+      style={{ width: isOpen ? expandedWidth : collapsedWidth }}
+      aria-label="Details Sidebar"
     >
       {/* Header Section */}
-      <div className={`flex items-center ${isOpen ? 'justify-between' : 'justify-center'} p-2 border-b border-gray-200`}>
+      <div className={`flex items-center ${isOpen ? 'justify-between' : 'justify-center'} p-2 border-b border-gray-200 flex-shrink-0`}>
         {/* Title - Only shown when open and title exists */}
         {isOpen && title && (
-          <h3 className="font-bold text-lg ml-2">{title}</h3> // Main title remains text-lg font-bold
+          <h3 className="font-bold text-lg ml-2 truncate" title={title}>{title}</h3> // Added truncate and title
         )}
-        {/* Spacer for when title is not shown but sidebar is open, to keep button right-aligned */}
-        {isOpen && !title && <div />}
+        {/* Spacer for alignment when title is hidden */}
+        {isOpen && !title && <div className="flex-grow" />}
 
-        {/* Toggle Button */}
-        <button
-          type="button"
-          aria-controls="sidebar-drawer"
-          aria-expanded={isOpen}
-          className="p-1 text-primary-44 hover:text-primary-100 duration-short ease-curve-a cursor-pointer transition-colors" // Adjusted padding
-          aria-label="Toggle navigation sidebar"
-          onClick={toggleSidebar}
-        >
-          {/* Conditionally render icons */}
-          {isOpen ? <PanelLeft size={18} /> : <PanelRight size={18} />}
-        </button>
+        {/* Buttons Container */}
+        <div className="flex items-center">
+          {/* Close Button (only show when open) */}
+          {isOpen && onClose && (
+            <button
+              type="button"
+              className="p-1 text-gray-500 hover:text-gray-800 duration-short ease-curve-a cursor-pointer transition-colors mr-1" // Added margin
+              aria-label="Close details sidebar"
+              onClick={handleClose}
+            >
+              <X size={18} />
+            </button>
+          )}
+          {/* Toggle Button */}
+          <button
+            type="button"
+            aria-controls="sidebar-drawer"
+            aria-expanded={isOpen}
+            className="p-1 text-gray-500 hover:text-gray-800 duration-short ease-curve-a cursor-pointer transition-colors"
+            aria-label={isOpen ? "Collapse sidebar" : "Expand sidebar"}
+            onClick={toggleSidebar}
+          >
+            {isOpen ? <PanelLeft size={18} /> : <PanelRight size={18} />}
+          </button>
+        </div>
       </div>
 
-      {/* Content is only rendered when open */}
+      {/* Content Area - Scrollable */}
+      {/* Render content wrapper only when open to prevent unnecessary rendering */}
       {isOpen && (
-        <div className="px-4 py-2 text-sm text-gray-700 overflow-y-auto" style={{ height: 'calc(100vh - 41px)' }}> {/* Adjust height based on header height */}
+        <div className="px-4 py-3 text-sm text-gray-700 overflow-y-auto flex-grow"> {/* Use flex-grow for remaining space */}
           {renderContent()}
         </div>
       )}
-    </div>
+    </aside>
   );
 };
 
@@ -233,6 +258,9 @@ DetailSidebar.propTypes = {
   defaultOpen: PropTypes.bool,
   expandedWidth: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   collapsedWidth: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  onClose: PropTypes.func, // Callback function to notify parent when closed
+  // onViewFullDetail: PropTypes.func, // Optional: Callback for navigating
 };
 
-export default DetailSidebar;
+// Memoize the component as its rendering depends only on props
+export default React.memo(DetailSidebar);

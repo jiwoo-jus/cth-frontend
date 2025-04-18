@@ -1,560 +1,573 @@
 import _isEqual from 'lodash/isEqual';
-import React, { useEffect, useRef, useState } from 'react';
+import { StepBack, StepForward } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { StepBack, StepForward } from 'lucide-react'; // Import icons
 
 import { searchClinicalTrials } from '../api/searchApi';
 import DetailSidebar from '../components/DetailSidebar';
-// import SidebarNavigation from '../components/SidebarNavigation';
-import { FilterPanel } from '../components/FilterPanel';
-import { SearchBar } from '../components/SearchBar';
-import SearchResults from '../components/SearchResults';
+import FilterPanel from '../components/FilterPanel'; // Default export
+import SearchBar from '../components/SearchBar'; // Default export
+import SearchResults from '../components/SearchResults'; // Default export
+import {
+  buildUrlParams,
+  defaultFilters,
+  createFilters,
+  preparePayload,
+  SESSION_KEY,
+  loadCache,
+  saveCache,
+} from '../utils/searchUtils'; // Import utils
 
-// 세션 스토리지 캐시 key
-const SESSION_KEY = "searchState";
-
-/**
- * URL 생성 시 필수 검색 필터만 포함하도록 수정합니다.
- * 오직 cond, intr, sources만 포함되며,
- * sources의 경우 배열이면 underscore 구분자(ex. "PM,CTG")로 변환합니다.
- */
-const buildUrlParams = (filtersObj) => {
-  const allowedKeys = ['cond', 'intr', 'sources'];
-  const params = {};
-  allowedKeys.forEach((key) => {
-    const value = filtersObj[key];
-    if (value === undefined || value === null || value === '') return;
-    if (key === 'sources') {
-      params[key] = Array.isArray(value) ? value.join(',') : value;
-    } else {
-      params[key] = value;
-    }
-  });
-  return params;
-};
-
-// 초기 필터 상태 (모든 빈 값은 null)
-// sources는 ["PM", "CTG"]로만 설정 (PMC는 제외)
-const defaultFilters = () => ({
-  cond: null,
-  intr: null,
-  other_term: null,
-  journal: null,
-  sex: null,
-  age: null,
-  studyType: null,
-  sponsor: null,
-  location: null,
-  status: null,
-  sources: ["PM", "CTG"]
-});
-
-/**
- * URL params 또는 기타 객체에서 필터 생성 (빈 값은 null 처리)
- * sources 값은 "PM_CTG"와 같이 underscore로 연결된 문자열을 배열로 변환합니다.
- */
-const createFilters = (params = {}) => ({
-  cond: params.cond || null,
-  intr: params.intr || null,
-  other_term: null,
-  journal: null,
-  sex: null,
-  age: null,
-  studyType: null,
-  sponsor: null,
-  location: null,
-  status: null,
-  sources: params.sources ? params.sources.split(',') : ["PM", "CTG"]
-});
+const DEFAULT_PAGE_SIZE = 10;
 
 const SearchPage = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const initialParams = Object.fromEntries([...searchParams]);
 
-  // 상세 페이지에서 복귀 여부를 판단하는 ref
-  const cameFromDetailRef = useRef(false);
-  // 백엔드 자동 업데이트에 의한 필터 업데이트 구분 플래그
-  const autoUpdateRef = useRef(false);
-  // 복원(캐시 또는 location.state)로 인해 값이 셋팅되었음을 나타내는 플래그
-  const restoredRef = useRef(false);
-  // 최초 마운트 여부
-  const initialMountRef = useRef(true);
+  // --- Refs ---
+  // Ref to track if the component is mounted for the first time
+  const isInitialMountRef = useRef(true);
+  // Ref to track if state update comes from backend refinement vs user interaction
+  const isBackendUpdateRef = useRef(false);
+  // Ref to track if state was restored from cache or location state
+  const isRestoredRef = useRef(false);
+  // Ref to store the previous filters state for comparison
+  const prevFiltersRef = useRef(null);
 
-  // 검색 관련 상태
+  // --- State ---
+  // Search query input
   const [query, setQuery] = useState('');
+  // Applied filters
   const [filters, setFilters] = useState(defaultFilters());
+  // Current page number
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  // Results per page
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  // Flag indicating if the backend refined the query
   const [isRefined, setIsRefined] = useState(false);
+  // The refined query object from the backend
   const [refinedQuery, setRefinedQuery] = useState(null);
+  // History of CTG page tokens { [pageNumber]: token }
   const [ctgTokenHistory, setCtgTokenHistory] = useState({});
+  // Search results object { pm: {...}, ctg: {...} }
   const [results, setResults] = useState(null);
+  // Loading state for API calls
   const [loading, setLoading] = useState(false);
-  const [searchHistory, setSearchHistory] = useState([]);
+  // History of search parameters (optional, for potential future use)
+  // const [searchHistory, setSearchHistory] = useState([]);
+  // Currently selected result item for the detail sidebar
   const [selectedResult, setSelectedResult] = useState(null);
-  // const [rightSidebarOpen, setRightSidebarOpen] = useState(true);
-  // const [rightWidth, setRightWidth] = useState(1000);
 
-  // URL 쿼리 제거 (최초 로드시)
+  // --- Initialization Effect (Runs Once) ---
   useEffect(() => {
-    if (window.location.search) {
-      console.log('[Initial] Removing URL query parameters on first mount.');
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
-  }, []);
+    console.log('[SearchPage] Initializing component state...');
+    const initialUrlParams = Object.fromEntries([...searchParams]);
 
-  // 캐시 읽기 helper
-  const loadCache = () => {
-    const cacheString = sessionStorage.getItem(SESSION_KEY);
-    if (cacheString) {
-      try {
-        const parsed = JSON.parse(cacheString);
-        console.log('[Cache] Loaded cache:', parsed);
-        return parsed;
-      } catch (e) {
-        console.error('[Cache] Failed parsing cache:', e);
-        return null;
-      }
-    }
-    return null;
-  };
-
-  // 캐시 저장 helper
-  const saveCache = (cacheObj) => {
-    sessionStorage.setItem(SESSION_KEY, JSON.stringify(cacheObj));
-    console.log('[Cache] Saved cache:', cacheObj);
-  };
-
-  // 초기 상태 복원: location.state → 세션스토리지 → URL 쿼리 순서로 복원
-  useEffect(() => {
-    if (location.state && location.state.searchState) {
-      console.log('[Initial] Restoring state from location.state:', location.state.searchState);
-      cameFromDetailRef.current = true;
+    // 1. Try restoring from location.state (e.g., navigating back from detail)
+    if (location.state?.searchState) {
+      console.log('[SearchPage] Restoring state from location.state:', location.state.searchState);
       const state = location.state.searchState;
-      setFilters(state.filters);
-      setPage(state.page);
-      setPageSize(state.pageSize);
-      setSearchHistory(state.searchHistory || []);
+      setFilters(state.filters || defaultFilters());
+      setPage(state.page || 1);
+      setPageSize(state.pageSize || DEFAULT_PAGE_SIZE);
+      setResults(state.results); // Restore results directly
       setRefinedQuery(state.refinedQuery);
-      setCtgTokenHistory(state.ctgTokenHistory);
-      
+      setIsRefined(!!state.refinedQuery);
+      setCtgTokenHistory(state.ctgTokenHistory || {});
+      // setSearchHistory(state.searchHistory || []); // Restore history if needed
+
+      // Update cache with the restored state
       saveCache({
         filters: state.filters,
         pageSize: state.pageSize,
-        searchHistory: state.searchHistory || [],
+        // searchHistory: state.searchHistory || [],
         currentPage: state.page,
         pageCache: {
           [state.page]: {
             results: state.results,
             refinedQuery: state.refinedQuery,
-            ctgTokenHistory: state.ctgTokenHistory
+            ctgTokenHistory: state.ctgTokenHistory || {},
           }
         }
       });
 
-      const newParams = buildUrlParams({
-        ...state.filters
-      });
-      console.log('[Initial] Setting URL parameters from location.state:', newParams);
-      setSearchParams(newParams);
-      navigate({ search: "?" + new URLSearchParams(newParams).toString() }, { replace: true });
-      
-      // 복원되었음을 표시
-      restoredRef.current = true;
-      return;
+      // Update URL without triggering navigation
+      const newUrlParams = buildUrlParams(state.filters);
+      setSearchParams(newUrlParams, { replace: true });
+      isRestoredRef.current = true; // Mark as restored
+      console.log('[SearchPage] State restored from location.state.');
+      return; // Stop further initialization
     }
 
+    // 2. Try restoring from session storage cache
     const cachedState = loadCache();
     if (cachedState) {
-      console.log('[Initial] Restoring state from session cache.');
-      setFilters(cachedState.filters);
-      setPage(cachedState.currentPage);
-      setPageSize(cachedState.pageSize);
-      setSearchHistory(cachedState.searchHistory || []);
-      if (cachedState.pageCache && cachedState.pageCache[cachedState.currentPage]) {
-        const pageData = cachedState.pageCache[cachedState.currentPage];
-        setResults(pageData.results);
-        setRefinedQuery(pageData.refinedQuery);
-        setCtgTokenHistory(pageData.ctgTokenHistory);
+      console.log('[SearchPage] Restoring state from session cache:', cachedState);
+      setFilters(cachedState.filters || defaultFilters());
+      setPage(cachedState.currentPage || 1);
+      setPageSize(cachedState.pageSize || DEFAULT_PAGE_SIZE);
+      // setSearchHistory(cachedState.searchHistory || []); // Restore history if needed
+
+      // Restore results/state for the cached page
+      const cachedPageData = cachedState.pageCache?.[cachedState.currentPage];
+      if (cachedPageData) {
+        setResults(cachedPageData.results);
+        setRefinedQuery(cachedPageData.refinedQuery);
+        setIsRefined(!!cachedPageData.refinedQuery);
+        setCtgTokenHistory(cachedPageData.ctgTokenHistory || {});
       }
-      const newParams = buildUrlParams({
-        ...cachedState.filters,
-        isRefined: cachedState.pageCache &&
-                   cachedState.pageCache[cachedState.currentPage] &&
-                   cachedState.pageCache[cachedState.currentPage].refinedQuery
-          ? "true"
-          : "false"
-      });
-      console.log('[Initial] Setting URL parameters from cache:', newParams);
-      setSearchParams(newParams);
-      navigate({ search: "?" + new URLSearchParams(newParams).toString() }, { replace: true });
-      
-      restoredRef.current = true;
-      return;
+
+      // Update URL without triggering navigation
+      const newUrlParams = buildUrlParams(cachedState.filters);
+      setSearchParams(newUrlParams, { replace: true });
+      isRestoredRef.current = true; // Mark as restored
+      console.log('[SearchPage] State restored from session cache.');
+      return; // Stop further initialization
     }
 
-    // 최초 진입 (캐시나 location.state가 없을 경우)
-    console.log('[Initial] First entry with URL params:', initialParams);
-    setFilters(createFilters(initialParams));
-    setPage(Number(initialParams.page) || 1);
-    setPageSize(Number(initialParams.pageSize) || 10);
-    setIsRefined(initialParams.isRefined === 'true');
-    setRefinedQuery(initialParams.refinedQuery ? JSON.parse(initialParams.refinedQuery) : null);
+    // 3. Initialize from URL parameters (first visit or direct link)
+    console.log('[SearchPage] No state/cache found, initializing from URL params:', initialUrlParams);
+    const initialFilters = createFilters(initialUrlParams);
+    setFilters(initialFilters);
+    setPage(Number(initialUrlParams.page) || 1); // Default to 1 if not specified
+    setPageSize(Number(initialUrlParams.pageSize) || DEFAULT_PAGE_SIZE);
+    // Note: isRefined and refinedQuery are not typically set directly from basic URL params
 
-    if (initialParams.cond || initialParams.intr || initialParams.other_term) {
-      console.log('[Initial] Auto-triggering search on first entry.');
-      handleSearch({
-        ...createFilters(initialParams),
-        page: Number(initialParams.page) || 1,
-        pageSize: Number(initialParams.pageSize) || 10,
-        isRefined: initialParams.isRefined === 'true',
-        refinedQuery: initialParams.refinedQuery ? JSON.parse(initialParams.refinedQuery) : null,
-        ctgPageToken: initialParams.ctgTokenHistory
-          ? JSON.parse(initialParams.ctgTokenHistory)[Number(initialParams.page)] || null
-          : null
-      });
+    // Auto-trigger search if essential filters are present in the initial URL
+    if (initialFilters.cond || initialFilters.intr || initialFilters.other_term) {
+      console.log('[SearchPage] Initial URL has search terms, triggering auto-search.');
+      // Use a timeout to allow initial state updates to settle before searching
+      setTimeout(() => {
+        handleSearch({
+          ...initialFilters,
+          page: Number(initialUrlParams.page) || 1,
+          pageSize: Number(initialUrlParams.pageSize) || DEFAULT_PAGE_SIZE,
+          // Pass null for refinement/token initially
+          isRefined: false,
+          refinedQuery: null,
+          ctgPageToken: null,
+        });
+      }, 0);
+    } else {
+       // Clear URL params if no search was triggered on load
+       console.log('[SearchPage] Initial URL has no search terms, clearing URL params.');
+       setSearchParams({}, { replace: true });
     }
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, []); // Run only once on mount
 
-  // 필터 변경 감지 (자동 업데이트 및 복원 상태 구분)
-  const sourcesString = JSON.stringify(filters.sources);
-  const prevFiltersRef = useRef(filters);
-
+  // --- Effect for Handling Filter Changes ---
   useEffect(() => {
-    // 백엔드 자동 업데이트에 의한 변경인 경우 무시
-    if (autoUpdateRef.current) {
-      console.log('[Filters] Skipping reset due to automatic backend update.');
-      autoUpdateRef.current = false;
-      prevFiltersRef.current = filters;
+    // Skip effect on the very first render
+    if (isInitialMountRef.current) {
+      console.log('[SearchPage Effect] Skipping filter change effect on initial mount.');
+      isInitialMountRef.current = false;
+      prevFiltersRef.current = filters; // Initialize prevFilters
       return;
     }
 
-    // 복원에 의한 업데이트라면 reset 로직 건너뛰기
-    if (restoredRef.current) {
-      console.log('[Filters] Skipping effect due to restoration of state.');
-      prevFiltersRef.current = filters;
-      restoredRef.current = false;
+    // Skip effect if the update was triggered by the backend refinement
+    if (isBackendUpdateRef.current) {
+      console.log('[SearchPage Effect] Skipping filter change effect due to backend update.');
+      isBackendUpdateRef.current = false; // Reset flag
+      prevFiltersRef.current = filters; // Update prevFilters
       return;
     }
 
-    // 최초 마운트일 경우에도 변경 감지에서 제외
-    if (initialMountRef.current) {
-      initialMountRef.current = false;
-      console.log('[Filters] Initial mount completed.');
-      prevFiltersRef.current = filters;
+    // Skip effect if the state was just restored
+    if (isRestoredRef.current) {
+      console.log('[SearchPage Effect] Skipping filter change effect due to state restoration.');
+      isRestoredRef.current = false; // Reset flag
+      prevFiltersRef.current = filters; // Update prevFilters
       return;
     }
 
-    console.log('[Filters] Filters changed:', filters);
-
+    // Compare current filters with previous filters (deep comparison for sources)
     const prevFilters = prevFiltersRef.current;
-    console.log('[Filters] Previous filters:', prevFilters);
-    console.log('[Filters] Current filters:', filters);
+    if (!_isEqual(filters, prevFilters)) {
+        console.log('[SearchPage Effect] Filters changed by user interaction:', { prev: prevFilters, current: filters });
 
-    const changedKeys = Object.keys(filters).filter((key) => {
-      if (key === 'refinedQuery') {
-        return !_isEqual(filters[key], prevFilters[key]);
-      }
-      return filters[key] !== prevFilters[key];
-    });
-    console.log('[Filters] Changed keys:', changedKeys);
+        // Reset pagination, refinement status, and token history on manual filter changes
+        console.log('[SearchPage Effect] Resetting page, refinement, and token history due to filter change.');
+        setPage(1);
+        setIsRefined(false);
+        setRefinedQuery(null);
+        setCtgTokenHistory({});
+        // Optionally clear results immediately for faster UI feedback
+        // setResults(null);
 
+        // Update the URL based on the new filters
+        const newUrlParams = buildUrlParams(filters);
+        console.log('[SearchPage Effect] Updating URL params after filter change:', newUrlParams);
+        setSearchParams(newUrlParams, { replace: true });
+
+        // Trigger a new search automatically when filters change?
+        // Decide based on UX preference. Currently requires manual submit via SearchBar.
+        // handleSearch({ ...filters, page: 1, pageSize, ctgPageToken: null });
+    }
+
+    // Update previous filters ref for the next comparison
     prevFiltersRef.current = filters;
 
-    if (cameFromDetailRef.current) {
-      console.log('[Filters] Skipping page reset due to return from detail page.');
-      cameFromDetailRef.current = false;
-      return;
-    }
-
-    if (
-      changedKeys.length === 0 ||
-      (changedKeys.length <= 3 && changedKeys.every((key) => ['page', 'refinedQuery', 'ctgPageToken'].includes(key)))
-    ) {
-      console.log('[Filters] Only page, refinedQuery, or ctgPageToken changed (or no changes), skipping reset.');
-      return;
-    }
-
-    console.log('[Filters] Resetting page, refined query, and CTG token history due to manual filter change.');
-    setIsRefined(false);
-    setRefinedQuery(null);
-    setPage(1);
-    setCtgTokenHistory({});
-  }, [filters, sourcesString]);
-
-  // src/pages/SearchPage.js
-const handleViewDetails = (item) => {
-  console.log('[Detail] View details for item:', item);
-
-  // 기존에 searchState 관련해서 넘기던 것
-  const stateToPass = {
-    filters,
-    results,
-    page,
-    pageSize,
-    refinedQuery,
-    ctgTokenHistory,
-    searchHistory
-  };
-
-  // 메타데이터를 따로 뽑아서 detail 페이지로 넘겨줄 수 있음
-  // item 안에 있는 title, pmid, pmcid, authors, pubDate 등 필요한 값들 추출
-  const metadata = {
-    title: item.title,
-    pmid: item.pmid || null,
-    pmcid: item.pmcid || null,
-    nctId: item.id || null, // Use item.id for nctId when source is CTG
-    doi: item.doi || null,
-    studyType: item.studyType || null,
-    authors: item.authors || [],
-    journal: item.journal || null,
-    pubDate: item.pubDate || item.date || null,
-    // Pass structured_info for CTG items
-    structured_info: item.source === 'CTG' ? item.structured_info : null,
-    // ... 추가로 필요한 것들 (journal명 등)
-  };
-
-  // sessionStorage 캐시 업데이트 등 기존 로직
-  const cached = loadCache() || { pageCache: {} };
-  cached.filters = filters;
-  cached.pageSize = pageSize;
-  cached.searchHistory = searchHistory;
-  cached.currentPage = page;
-  cached.pageCache[page] = { results, refinedQuery, ctgTokenHistory };
-  saveCache(cached);
-
-  // source에 따라 쿼리 파라미터도 설정
-  if (item.source === 'CTG') {
-    navigate(`/detail?nctId=${item.id}&source=CTG`, {
-      state: {
-        searchState: stateToPass,
-        metadata: metadata,  // detail 페이지에서 쓸 데이터
-      },
-    });
-  } else {
-    // PM or PMC
-    // Pass pmcid correctly for PM/PMC sources
-    navigate(`/detail?paperId=${item.id}&pmcid=${item.pmcid}&source=${item.source}`, {
-      state: {
-        searchState: stateToPass,
-        metadata: metadata,  // detail 페이지에서 쓸 데이터
-      },
-    });
-  }
-};
+  }, [filters, setSearchParams]); // Dependency: filters object, setSearchParams
 
 
-  // 필터 객체에서 빈 값(null, undefined, '') 제거 helper
-  const preparePayload = (filtersObj) => {
-    return Object.entries(filtersObj).reduce((acc, [key, value]) => {
-      if (value === undefined || value === null || value === '') {
-        return acc;
-      }
-      acc[key] = value;
-      return acc;
-    }, {});
-  };
+  // --- Event Handlers ---
 
-  // 검색 API 호출 및 캐시 업데이트 (refinedQuery 적용)
-  const handleSearch = async (customParams = null) => {
-    console.log('[Search] handleSearch called with params:', customParams);
-    let rawFilters;
-    if (!customParams) {
-      rawFilters = { ...filters, user_query: query, page: 1, pageSize, ctgPageToken: null };
-      console.log('[Search] Using current filters with query:', rawFilters);
-      setSearchHistory([rawFilters, ...searchHistory]);
+  /**
+   * Initiates a search request to the backend.
+   * Can be called with specific parameters (e.g., for pagination) or uses current state.
+   */
+  const handleSearch = useCallback(async (searchParamsOverride = null) => {
+    let searchPayload;
+    let currentPage;
+
+    if (searchParamsOverride) {
+      // Use provided params (e.g., for initial load or pagination)
+      console.log('[SearchPage] handleSearch called with override params:', searchParamsOverride);
+      searchPayload = preparePayload(searchParamsOverride);
+      currentPage = searchParamsOverride.page || 1;
     } else {
-      rawFilters = customParams;
-    }
-    const effectiveFilters = preparePayload(rawFilters);
-    console.log('[Search] Prepared effective filters for API:', effectiveFilters);
-    setLoading(true);
-    try {
-      effectiveFilters.ctgPageToken = ctgTokenHistory[effectiveFilters.page] || null;
-      const data = await searchClinicalTrials(effectiveFilters);
-      console.log('[Search] API response:', data);
-      const updatedFilters = { ...rawFilters };
-      if (data.refinedQuery) {
-        console.log('[Search] Applying refinedQuery from API:', data.refinedQuery);
-        updatedFilters.cond = data.refinedQuery.cond || updatedFilters.cond;
-        updatedFilters.intr = data.refinedQuery.intr || updatedFilters.intr;
-        updatedFilters.other_term = data.refinedQuery.other_term || updatedFilters.other_term;
-        updatedFilters.refinedQuery = data.refinedQuery;
-        updatedFilters.isRefined = true;
-        autoUpdateRef.current = true;
-        setRefinedQuery(data.refinedQuery);
-        setIsRefined(true);
-        setFilters(updatedFilters);
-      }
-      setResults(data.results);
-      if (data.results?.ctg?.nextPageToken) {
-        setCtgTokenHistory(prev => ({
-          ...prev,
-          [updatedFilters.page + 1]: data.results.ctg.nextPageToken
-        }));
-        console.log('[Search] Updated CTG token history:', ctgTokenHistory);
-      }
-      const newParams = buildUrlParams({
-        ...updatedFilters,
-        isRefined: updatedFilters.isRefined ? "true" : "false"
+      // Use current state (e.g., when submitting from SearchBar)
+      console.log('[SearchPage] handleSearch called with current state:', { query, filters, page, pageSize });
+      // Reset page to 1 for new manual searches
+      currentPage = 1;
+      setPage(currentPage);
+      setIsRefined(false); // Reset refinement for new manual search
+      setRefinedQuery(null);
+      setCtgTokenHistory({}); // Reset tokens for new manual search
+
+      searchPayload = preparePayload({
+        ...filters,
+        user_query: query, // Include the main search query
+        page: currentPage,
+        pageSize,
+        ctgPageToken: null, // No token for the first page of a new search
       });
-      console.log('[Search] Updating URL and cache with newParams:', newParams);
-      setSearchParams(newParams);
-      navigate({ search: "?" + new URLSearchParams(newParams).toString() }, { replace: true });
-      
-      const cached = loadCache() || {};
-      cached.filters = updatedFilters;
-      cached.pageSize = updatedFilters.pageSize;
-      cached.searchHistory = [updatedFilters, ...searchHistory];
-      cached.currentPage = updatedFilters.page;
-      cached.pageCache = cached.pageCache || {};
-      cached.pageCache[updatedFilters.page] = {
-        results: data.results,
-        refinedQuery: updatedFilters.refinedQuery,
-        ctgTokenHistory: ctgTokenHistory
+      // Update URL for the new search
+      const newUrlParams = buildUrlParams({ ...filters, user_query: query });
+      setSearchParams(newUrlParams, { replace: true });
+    }
+
+    console.log('[SearchPage] Prepared search payload:', searchPayload);
+    setLoading(true);
+    setSelectedResult(null); // Clear selection on new search
+    // setResults(null); // Optional: Clear previous results immediately
+
+    try {
+      // Ensure the correct token for the *requested* page is included
+      searchPayload.ctgPageToken = ctgTokenHistory[currentPage] || null;
+      console.log(`[SearchPage] Using CTG token for page ${currentPage}:`, searchPayload.ctgPageToken);
+
+      const data = await searchClinicalTrials(searchPayload);
+      console.log('[SearchPage] Search API response received:', data);
+
+      let currentFilters = searchParamsOverride ? { ...searchParamsOverride } : { ...filters, user_query: query };
+      let currentRefinedQuery = searchParamsOverride ? searchParamsOverride.refinedQuery : refinedQuery;
+      let currentIsRefined = searchParamsOverride ? searchParamsOverride.isRefined : isRefined;
+      let currentPageTokenHistory = { ...ctgTokenHistory };
+
+      // Handle backend query refinement
+      if (data.refinedQuery && !_isEqual(data.refinedQuery, currentRefinedQuery)) {
+        console.log('[SearchPage] Backend refined the query:', data.refinedQuery);
+        isBackendUpdateRef.current = true; // Set flag to prevent filter change effect loop
+
+        currentFilters = {
+          ...currentFilters,
+          cond: data.refinedQuery.cond ?? currentFilters.cond,
+          intr: data.refinedQuery.intr ?? currentFilters.intr,
+          other_term: data.refinedQuery.other_term ?? currentFilters.other_term,
+        };
+        currentRefinedQuery = data.refinedQuery;
+        currentIsRefined = true;
+
+        setFilters(currentFilters); // Update filters state
+        setRefinedQuery(currentRefinedQuery); // Update refined query state
+        setIsRefined(currentIsRefined); // Update refined status state
+
+        // Update URL with refined filters
+        const refinedUrlParams = buildUrlParams(currentFilters);
+        setSearchParams(refinedUrlParams, { replace: true });
+      }
+
+      // Update results
+      setResults(data.results || { pm: { total: 0, results: [] }, ctg: { total: 0, results: [] } }); // Ensure results object exists
+
+      // Update CTG token history for the *next* page
+      if (data.results?.ctg?.nextPageToken) {
+        const nextPage = currentPage + 1;
+        console.log(`[SearchPage] Storing CTG token for next page (${nextPage}):`, data.results.ctg.nextPageToken);
+        currentPageTokenHistory = {
+          ...currentPageTokenHistory,
+          [nextPage]: data.results.ctg.nextPageToken,
+        };
+        setCtgTokenHistory(currentPageTokenHistory);
+      }
+
+      // Update cache
+      const cacheToSave = {
+        filters: currentFilters,
+        pageSize: pageSize,
+        // searchHistory: searchHistory, // Update history if needed
+        currentPage: currentPage,
+        pageCache: {
+          ...(loadCache()?.pageCache || {}), // Preserve cache for other pages
+          [currentPage]: {
+            results: data.results,
+            refinedQuery: currentRefinedQuery,
+            ctgTokenHistory: currentPageTokenHistory,
+          },
+        },
       };
-      saveCache(cached);
-      console.log('[Search] Search completed, current page:', updatedFilters.page);
+      saveCache(cacheToSave);
+      console.log('[SearchPage] Search completed and cache updated for page:', currentPage);
+
     } catch (error) {
-      console.error('[Search] Error during search:', error);
-      setResults(null);
+      console.error('[SearchPage] Search failed:', error);
+      setResults({ pm: { total: 0, results: [] }, ctg: { total: 0, results: [] } }); // Set empty results on error
+      // TODO: Show user-friendly error message
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters, query, page, pageSize, ctgTokenHistory, setSearchParams, isRefined, refinedQuery,]); // Dependencies for useCallback
 
-  // 페이지 전환: 캐시가 있으면 사용하고, 없으면 API 호출
-  const goToPage = (newPage) => {
-    console.log('[Pagination] goToPage called. Current page:', page, 'New page:', newPage);
+
+  /**
+   * Navigates to a specific page, using cache if available, otherwise fetching.
+   */
+  const goToPage = useCallback((newPage) => {
+    if (newPage === page) return; // Do nothing if already on the page
+    console.log(`[SearchPage] goToPage requested for page: ${newPage}`);
+
     const cached = loadCache();
-    if (cached && cached.pageCache && cached.pageCache[newPage]) {
-      const pageData = cached.pageCache[newPage];
-      console.log('[Pagination] Found cached data for page', newPage, ':', pageData);
+    const cachedPageData = cached?.pageCache?.[newPage];
+
+    if (cachedPageData) {
+      console.log(`[SearchPage] Cache hit for page ${newPage}. Restoring from cache.`);
       setPage(newPage);
-      setResults(pageData.results);
-      setRefinedQuery(pageData.refinedQuery);
-      setCtgTokenHistory(pageData.ctgTokenHistory);
-      const newParams = buildUrlParams({
-        ...cached.filters,
-        isRefined: pageData.refinedQuery ? "true" : "false"
+      setResults(cachedPageData.results);
+      setRefinedQuery(cachedPageData.refinedQuery);
+      setIsRefined(!!cachedPageData.refinedQuery);
+      setCtgTokenHistory(cachedPageData.ctgTokenHistory || {});
+
+      // Update cache's current page pointer
+      saveCache({ ...cached, currentPage: newPage });
+
+      // Update URL (optional, could just rely on state)
+      // const newUrlParams = buildUrlParams(cached.filters);
+      // setSearchParams(newUrlParams, { replace: true });
+
+    } else {
+      console.log(`[SearchPage] Cache miss for page ${newPage}. Fetching data.`);
+      // Set the new page state immediately for UI feedback
+      setPage(newPage);
+      // Trigger search for the new page, using current filters and refinement status
+      handleSearch({
+        ...filters,
+        user_query: query, // Include current query
+        page: newPage,
+        pageSize,
+        isRefined,
+        refinedQuery,
+        // Token for the requested page should already be in ctgTokenHistory if fetched sequentially
+        ctgPageToken: ctgTokenHistory[newPage] || null,
       });
-      console.log('[Pagination] Updating URL for cached page change:', newParams);
-      setSearchParams(newParams);
-      navigate({ search: "?" + new URLSearchParams(newParams).toString() }, { replace: true });
-      return;
     }
-    console.log('[Pagination] No cache for page', newPage, '- triggering search.');
-    setPage(newPage);
-    handleSearch({
-      ...filters,
-      page: newPage,
-      pageSize,
-      isRefined,
-      refinedQuery,
-      ctgPageToken: ctgTokenHistory[newPage] || null
-    });
-  };
+  }, [page, filters, query, pageSize, isRefined, refinedQuery, ctgTokenHistory, handleSearch]); // Dependencies for useCallback
 
-  // 결과 항목 선택 시 처리
-  const handleResultSelect = (result) => {
-    console.log('[Result] Selected result:', result);
+  /**
+   * Handles selecting a result item to show details.
+   */
+  const handleResultSelect = useCallback((result) => {
+    console.log('[SearchPage] Result selected:', result);
     setSelectedResult(result);
-  };
+    // Optionally open/focus the DetailSidebar here if needed
+  }, []);
 
-  // 총 페이지 수 (예시: PubMed 결과 기준)
-  const totalPages = results && results.pm ? Math.ceil(results.pm.total / pageSize) : 1;
-  console.log('[Pagination] Calculated total pages:', totalPages);
+  /**
+   * Navigates to the full detail page for a selected item.
+   */
+  const handleViewDetails = useCallback((item) => {
+    console.log('[SearchPage] Navigating to detail page for item:', item);
 
-  // 로고 클릭 시 전체 초기화
-  const handleLogoClick = () => {
-    console.log('[Logo] Clicked logo. Resetting all states to initial values.');
-    setFilters(defaultFilters());
+    // 1. Prepare state to pass for potential back navigation restoration
+    const stateToPass = {
+      filters,
+      results, // Pass current results
+      page,
+      pageSize,
+      refinedQuery,
+      ctgTokenHistory,
+      // searchHistory, // Pass history if needed
+    };
+
+    // 2. Extract metadata for the detail page itself
+    const metadata = {
+      title: item.title,
+      source: item.source, // 'PM' or 'CTG'
+      // PubMed specific
+      pmid: item.pmid || null,
+      pmcid: item.pmcid || null,
+      authors: item.authors || [],
+      journal: item.journal || null,
+      pubDate: item.pubDate || null,
+      // CTG specific
+      nctId: item.id || null, // Use item.id for CTG's NCT ID
+      studyType: item.studyType || null,
+      status: item.status || null,
+      // *** Add structured_info here ***
+      structured_info: item.structured_info || null, // Ensure structured_info is included
+      // Add other relevant fields as needed
+    };
+
+    // 3. Update session cache before navigating away
+    const cached = loadCache() || { pageCache: {} };
+    saveCache({
+      ...cached,
+      filters: filters,
+      pageSize: pageSize,
+      // searchHistory: searchHistory,
+      currentPage: page,
+      pageCache: {
+        ...cached.pageCache,
+        [page]: { results, refinedQuery, ctgTokenHistory }, // Ensure current page data is saved
+      },
+    });
+
+    // 4. Navigate to the detail page with state and metadata
+    let detailPath = '/detail';
+    const queryParams = new URLSearchParams();
+    queryParams.set('source', item.source);
+
+    if (item.source === 'CTG') {
+      queryParams.set('nctId', item.id);
+    } else { // PubMed/PMC
+      queryParams.set('paperId', item.id); // Assuming item.id holds PMID or PMCID here
+      if (item.pmid) queryParams.set('pmid', item.pmid);
+      if (item.pmcid) queryParams.set('pmcid', item.pmcid);
+    }
+    detailPath += `?${queryParams.toString()}`;
+
+    console.log(`[SearchPage] Navigating to: ${detailPath}`);
+    navigate(detailPath, {
+      state: {
+        searchState: stateToPass, // State for restoring SearchPage
+        metadata: metadata,       // Data for DetailPage (now includes structured_info)
+      },
+    });
+  }, [navigate, filters, results, page, pageSize, refinedQuery, ctgTokenHistory]); // Dependencies for useCallback
+
+  /**
+   * Resets the entire search state and navigates to the root.
+   * Typically triggered by clicking the logo/title.
+   */
+  const handleResetAndGoHome = useCallback(() => {
+    console.log('[SearchPage] Resetting state and navigating home.');
+    // Clear state
     setQuery('');
+    setFilters(defaultFilters());
     setPage(1);
-    setPageSize(10);
+    setPageSize(DEFAULT_PAGE_SIZE);
     setIsRefined(false);
     setRefinedQuery(null);
     setCtgTokenHistory({});
-    setSearchHistory([]);
     setResults(null);
+    setSelectedResult(null);
+    // setSearchHistory([]);
+    setLoading(false);
+
+    // Clear cache and URL params
     sessionStorage.removeItem(SESSION_KEY);
-    console.log('[Logo] State reset complete. Reloading page and navigating to root.');
+    setSearchParams({}, { replace: true }); // Clear URL params
+
+    // Navigate to home - consider if reload is truly necessary
     navigate('/');
-    window.location.reload();
-  };
+    // window.location.reload(); // Avoid full reload if possible
+  }, [navigate, setSearchParams]); // Dependencies for useCallback
+
+
+  // --- Render Logic ---
+
+  // Calculate total pages based on PubMed results (adjust if CTG pagination is primary)
+  const totalPmResults = results?.pm?.total || 0;
+  const totalPages = totalPmResults > 0 ? Math.ceil(totalPmResults / pageSize) : 1;
 
   return (
-    <div className="flex min-h-screen">
-      {/* 왼쪽 사이드바 네비게이션 (지금은 안 씀) */}
-      {/* <aside className="p-4">
-        <SidebarNavigation />
-      </aside> */}
+    <div className="flex min-h-screen bg-gray-50"> {/* Added background color */}
 
-      {/* 메인 컨텐츠 영역 */}
-      {/* <div className="flex-grow p-4 min-w-0"> <--- min-w-0 추가해야 해당 flex 아이템의 암시적인 최소 너비를 0으로 설정하여, flex-grow와 함께 사용될 때 다른 flex 아이템(DetailSidebar)이 커지면 자신이 차지하는 공간을 필요한 만큼 줄일 수 있도록 함. */}
-      <div className="flex-grow py-8 px-4 min-w-0"> {/* Changed p-4 to py-8 px-4 */}
-        <div className="mb-4 cursor-pointer" onClick={handleLogoClick}>
-          <h1 className="text-3xl font-bold text-center text-black tracking-tight mb-6 hover:opacity-80 transition">
+      {/* Main Content Area */}
+      <main className="flex-grow py-8 px-4 min-w-0"> {/* Use main tag */}
+        {/* Logo/Header */}
+        <div className="mb-8 text-center"> {/* Increased margin */}
+          <h1
+            className="text-3xl font-bold text-gray-800 tracking-tight cursor-pointer hover:opacity-80 transition-opacity"
+            onClick={handleResetAndGoHome}
+            title="Reset search and go home" // Added title attribute
+          >
             Clinical Trials Hub
           </h1>
         </div>
 
-        {/* 검색 바 */}
-        <SearchBar 
-          query={query} 
-          setQuery={setQuery} 
-          onSubmit={() => {
-            console.log('[SearchBar] Submitting search with query:', query);
-            handleSearch();
-          }} 
+        {/* Search Bar */}
+        <SearchBar
+          query={query}
+          setQuery={setQuery}
+          onSubmit={() => handleSearch()} // Pass handleSearch directly
         />
 
-        {/* 필터 패널 */}
+        {/* Filter Panel */}
         <FilterPanel filters={filters} setFilters={setFilters} />
 
-        {/* 검색 결과 영역 */}
+        {/* Loading Indicator or Search Results */}
         {loading ? (
-          <div className="text-center mt-6">Loading...</div>
+          <div className="text-center mt-10 text-gray-600">
+            {/* Add a simple spinner or loading text */}
+            <p>Loading results...</p>
+          </div>
         ) : (
           <SearchResults
             results={results}
-            onResultSelect={handleResultSelect}
-            onViewDetails={handleViewDetails}
+            onResultSelect={handleResultSelect} // Pass selection handler
+            onViewDetails={handleViewDetails}   // Pass detail view handler
           />
         )}
 
-        {/* 페이지네비게이션 버튼 */}
-        {results && results.pm && (
-          <div className="flex justify-center items-center gap-6 mt-8">
+        {/* Pagination Controls (Show only if there are results) */}
+        {results && (totalPmResults > 0 || results.ctg?.results?.length > 0) && !loading && (
+          <div className="flex justify-center items-center gap-4 mt-8">
             <button
-              disabled={page === 1}
               onClick={() => goToPage(page - 1)}
-              className="text-sm font-medium rounded-full text-black transition" // Adjusted padding
+              disabled={page === 1}
+              className="p-2 rounded-full text-gray-700 hover:bg-gray-200 disabled:text-gray-400 disabled:bg-transparent disabled:cursor-not-allowed transition-colors"
+              aria-label="Previous page"
             >
-              <StepBack size={20} /> {/* Use icon */}
+              <StepBack size={20} />
             </button>
-            <span className="text-sm text-custom-text">
-              Page {page} of {totalPages}
+            <span className="text-sm text-custom-text tabular-nums"> {/* Use tabular-nums for consistent spacing */}
+              Page {page} {totalPmResults > 0 ? `of ${totalPages}` : ''} {/* Show total only if PM results exist */}
             </span>
             <button
-              disabled={page === totalPages}
+              // Disable logic needs refinement if CTG drives pagination primarily
               onClick={() => goToPage(page + 1)}
-              className="text-sm font-medium rounded-full text-black transition" // Adjusted padding
+              disabled={page === totalPages || (!results?.pm?.results?.length && !results?.ctg?.nextPageToken)} // More robust check needed if CTG is primary
+              className="p-2 rounded-full text-gray-700 hover:bg-gray-200 disabled:text-gray-400 disabled:bg-transparent disabled:cursor-not-allowed transition-colors"
+              aria-label="Next page"
             >
-              <StepForward size={20} /> {/* Use icon */}
+              <StepForward size={20} />
             </button>
           </div>
         )}
-      </div>
+      </main>
 
-      {/* 오른쪽 상세보기 사이드바 */}
+      {/* Right Detail Sidebar */}
       <DetailSidebar
         selectedResult={selectedResult}
-        // 사이드바 열림/닫힘 및 너비는 DetailSidebar 내부에서 관리. 하지만 이렇게 매개변수로 전달 가능.
-        expandedWidth="30%"    
-        collapsedWidth="2rem"    
+        // Configuration props for the sidebar's appearance/behavior
+        expandedWidth="35%" // Example width
+        collapsedWidth="0" // Collapse fully when no item selected
+        onClose={() => setSelectedResult(null)} // Add a way to close the sidebar
+        onViewFullDetail={handleViewDetails} // Pass handler to navigate from sidebar
       />
     </div>
   );

@@ -1,93 +1,119 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react'; // Import useCallback
 import { Search } from 'lucide-react';
 import PropTypes from 'prop-types';
 
-export const SearchBar = ({ query, setQuery, onSubmit }) => {
-  // 순환할 플레이스홀더 문구들
-  const placeholderTexts = [
-    "Low-sodium diet for the management of hypertension",
-    "Randomized controlled trial of insulin treatment for type 2 diabetes",
-    "Treatment strategies for Alzheimer's disease in geriatric populations",
-    "Effect of methylphenidate on attention in children with ADHD",
-  ];
+// Placeholder texts for the search bar
+const PLACEHOLDER_TEXTS = [
+  "Low-sodium diet for the management of hypertension",
+  "Randomized controlled trial of insulin treatment for type 2 diabetes",
+  "Treatment strategies for Alzheimer's disease in geriatric populations",
+  "Effect of methylphenidate on attention in children with ADHD",
+];
 
-  const [currentIdx, setCurrentIdx] = useState(0);
+const SearchBar = ({ query, setQuery, onSubmit }) => {
+  const [currentPlaceholderIndex, setCurrentPlaceholderIndex] = useState(0);
   const textareaRef = useRef(null);
 
-  // 3초마다 플레이스홀더 변경
+  // Cycle through placeholders every 3 seconds
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentIdx((prev) => (prev + 1) % placeholderTexts.length);
+    const intervalId = setInterval(() => {
+      setCurrentPlaceholderIndex((prevIndex) => (prevIndex + 1) % PLACEHOLDER_TEXTS.length);
     }, 3000);
-    return () => clearInterval(interval);
-  }, [placeholderTexts.length]);
+    // Clear interval on component unmount
+    return () => clearInterval(intervalId);
+  }, []); // Empty dependency array ensures this runs only once on mount
 
-  // Enter키는 Shift 없이 누르면 제출, Shift+Enter 는 줄바꿈
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      onSubmit();
-    }
-  };
-
-  // 입력값이 바뀔 때마다 텍스트영역 높이 자동 조절
-  const handleChange = (e) => {
-    setQuery(e.target.value);
+  // Adjust textarea height based on content
+  const adjustTextareaHeight = useCallback(() => {
     if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
+      textareaRef.current.style.height = 'auto'; // Reset height
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`; // Set to scroll height
     }
-  };
+  }, []);
+
+  // Handle input changes: update query state and adjust height
+  const handleChange = useCallback((e) => {
+    setQuery(e.target.value);
+    // No need to call adjustTextareaHeight here if useEffect below handles it
+  }, [setQuery]);
+
+  // Adjust height whenever the query value changes
+  useEffect(() => {
+    adjustTextareaHeight();
+  }, [query, adjustTextareaHeight]);
+
+  // Handle key down: Submit on Enter (without Shift), allow Shift+Enter for newline
+  const handleKeyDown = useCallback((e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault(); // Prevent default newline behavior
+      console.log('[SearchBar] Enter pressed, submitting query.');
+      onSubmit(); // Trigger the search submission
+    }
+  }, [onSubmit]);
+
+  // Handle form submission
+  const handleSubmit = useCallback((e) => {
+    e.preventDefault(); // Prevent default form submission
+    console.log('[SearchBar] Form submitted.');
+    onSubmit(); // Trigger the search submission
+  }, [onSubmit]);
 
   return (
-    <div className="relative z-40 mx-auto w-full max-w-[768px]">
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          onSubmit();
-        }}
-        className="relative"
-      >
+    <div className="relative z-40 mx-auto w-full max-w-[768px]"> {/* Max width container */}
+      <form onSubmit={handleSubmit} className="relative">
         <label
+          htmlFor="search-textarea" // Added htmlFor for accessibility
           className="
             relative flex w-full cursor-text flex-col overflow-hidden
             rounded-2xl px-4 py-3
             light:border-primary-12 dark:bg-primary-4 light:bg-secondary-100
-            light:shadow-splash-chatpgpt-input
+            light:shadow-splash-chatpgpt-input border
           "
         >
-          <div className="sr-only">Search</div>
+          {/* Screen reader only label */}
+          <span id="search-label" className="sr-only">Search Query Input</span>
 
-          {/* query가 비어있을 때만 플레이스홀더 문구 노출 */}
+          {/* Animated Placeholder: Only shown when query is empty */}
           {!query && (
-            <div className="absolute left-4 top-3 text-custom-text-subtle pointer-events-none transition-opacity duration-300">
-              {placeholderTexts[currentIdx]}
+            <div
+              aria-hidden="true" // Hide decorative placeholder from assistive tech
+              className="absolute left-4 top-3 text-custom-text-subtle pointer-events-none transition-opacity duration-300"
+            >
+              {PLACEHOLDER_TEXTS[currentPlaceholderIndex]}
             </div>
           )}
 
+          {/* Textarea Input */}
           <textarea
             ref={textareaRef}
-            rows="1"
-            placeholder=" " // 실제 placeholder는 공백 처리
+            id="search-textarea" // Added id
+            rows="1" // Start with one row
+            placeholder=" " // Use space placeholder to allow label animation/positioning
             value={query}
             onChange={handleChange}
             onKeyDown={handleKeyDown}
+            aria-labelledby="search-label" // Link label for accessibility
             className="
               relative w-full pr-12 bg-transparent text-base leading-relaxed
-              resize-none overflow-hidden focus:outline-none
+              resize-none overflow-y-hidden focus:outline-none /* Hide scrollbar */
+              text-black /* Ensure text color is visible */
             "
+            style={{ maxHeight: '150px' }} // Optional: Limit max height
           />
 
+          {/* Submit Button */}
           <div className="absolute bottom-3 right-3 flex justify-end">
             <button
               type="submit"
-              aria-label="Send search query"
+              aria-label="Submit search query"
+              disabled={!query.trim()} // Disable if query is empty or only whitespace
               className="
-                bg-primary-100 text-secondary-100 disabled:bg-primary-4 disabled:text-primary-44
-                relative h-9 w-9 rounded-full p-0 transition-colors hover:opacity-70 disabled:hover:opacity-100
+                bg-primary-100 text-secondary-100 disabled:bg-gray-300 disabled:text-gray-500 /* Adjusted disabled style */
+                relative flex items-center justify-center /* Center icon */
+                h-9 w-9 rounded-full p-0 transition-colors hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed
               "
             >
-              <Search size={16} />
+              <Search size={18} /> {/* Slightly larger icon */}
             </button>
           </div>
         </label>
@@ -101,3 +127,6 @@ SearchBar.propTypes = {
   setQuery: PropTypes.func.isRequired,
   onSubmit: PropTypes.func.isRequired,
 };
+
+// Wrap export in React.memo for performance optimization
+export default React.memo(SearchBar); // Use default export
