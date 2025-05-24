@@ -10,6 +10,8 @@ import FullText from '../components/FullText';
 import ReferenceList from '../components/ReferenceList';
 // Import the new component
 import StructuredInfoTabs from '../components/StructuredInfoTabs';
+// Import glossary for MeSH terms component
+import MeSHGlossary from '../components/MeSHGlossary';
 
 const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5050';
 
@@ -36,6 +38,7 @@ const DetailPage = () => {
   const [fullText, setFullText] = useState(''); // For PMC source full text
   const [fullTextExpanded, setFullTextExpanded] = useState(false);
   const [selectedReferenceInfo, setSelectedReferenceInfo] = useState(null); // { pmcid: string, fullText: string } | null
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
 
   const fullTextRef = useRef(null);
   const referenceListRef = useRef(null); // Ref for ReferenceList component
@@ -230,6 +233,11 @@ const DetailPage = () => {
 
   const chatBotProps = getChatBotProps();
 
+  useEffect(() => {
+    if (structuredInfo || fullText) {
+      setIsDataLoaded(true);
+    }
+  }, [structuredInfo, fullText]);
 
   return (
     <div className="px-6 py-8 max-w-screen-2xl mx-auto">
@@ -340,19 +348,27 @@ const DetailPage = () => {
           {/* ChatBot Component Wrapper - Let it grow naturally */}
           {/* Removed flex-1 min-h-0 as parent no longer has fixed height */}
           <div>
-            <ChatBot
-              key={chatBotProps.key}
-              paperId={chatBotProps.paperId}
-              data={chatBotProps.data}
-              source={chatBotProps.source}
-              relevantId={chatBotProps.relevantId}
-              onResponse={({ evidence }) =>
-                console.log('Chat response evidence:', evidence)
-              }
-              onEvidenceClick={scrollToEvidence}
-              // Pass the checking function down
-              canHighlightEvidence={canHighlightEvidence}
-            />
+            {isDataLoaded ? (
+              <ChatBot
+                key={chatBotProps.key}
+                paperId={chatBotProps.paperId}
+                data={chatBotProps.data}
+                source={chatBotProps.source}
+                relevantId={chatBotProps.relevantId}
+                onResponse={({ evidence }) =>
+                  console.log('Chat response evidence:', evidence)
+                }
+                onEvidenceClick={scrollToEvidence}
+                // Pass the checking function down
+                canHighlightEvidence={canHighlightEvidence}
+              />
+            ) : (
+              <div>Loading...</div>
+            )}
+          </div>
+
+          <div >
+            <MeSHGlossary/>
           </div>
         </div>
 

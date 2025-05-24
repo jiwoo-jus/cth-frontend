@@ -4,11 +4,15 @@ import PropTypes from 'prop-types';
 
 export const SearchBar = ({ query, setQuery, onSubmit }) => {
   // 순환할 플레이스홀더 문구들
+  // const placeholderTexts = [
+  //   "Low-sodium diet for the management of hypertension",
+  //   "Randomized controlled trial of insulin treatment for type 2 diabetes",
+  //   "Treatment strategies for Alzheimer's disease in geriatric populations",
+  //   "Effect of methylphenidate on attention in children with ADHD",
+  // ];
   const placeholderTexts = [
-    "Low-sodium diet for the management of hypertension",
-    "Randomized controlled trial of insulin treatment for type 2 diabetes",
-    "Treatment strategies for Alzheimer's disease in geriatric populations",
-    "Effect of methylphenidate on attention in children with ADHD",
+    "Diabetes insulin child",
+    "Elderly Alzheimer's"
   ];
 
   const [currentIdx, setCurrentIdx] = useState(0);
@@ -60,7 +64,7 @@ export const SearchBar = ({ query, setQuery, onSubmit }) => {
 
           {/* query가 비어있을 때만 플레이스홀더 문구 노출 */}
           {!query && (
-            <div className="absolute left-4 top-3 text-custom-text-subtle pointer-events-none transition-opacity duration-300">
+            <div className="absolute left-4 top-3 text-custom-text-subtle pointer-events-none transition-opacity duration-300 truncate">
               {placeholderTexts[currentIdx]}
             </div>
           )}

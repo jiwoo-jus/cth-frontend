@@ -2,10 +2,10 @@ import { Filter } from 'lucide-react';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-const sourceOptions = [
-  { label: "PubMed", value: "PM" },
-  { label: "ClinicalTrials.gov", value: "CTG" }
-];
+// const sourceOptions = [
+//   { label: "PubMed", value: "PM" },
+//   { label: "ClinicalTrials.gov", value: "CTG" }
+// ];
 
 // Add a mapping for field names to display labels
 const fieldLabels = {
@@ -15,7 +15,7 @@ const fieldLabels = {
 };
 
 export const FilterPanel = ({ filters, setFilters }) => {
-  const [showMore, setShowMore] = React.useState(false);
+  // const [showMore, setShowMore] = React.useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -25,13 +25,13 @@ export const FilterPanel = ({ filters, setFilters }) => {
     });
   };
 
-  const handleSourceChange = (value) => {
-    let current = filters.sources || sourceOptions.map(opt => opt.value);
-    current = current.includes(value)
-      ? current.filter(v => v !== value)
-      : [...current, value];
-    setFilters({ ...filters, sources: current });
-  };
+  // const handleSourceChange = (value) => {
+  //   let current = filters.sources || sourceOptions.map(opt => opt.value);
+  //   current = current.includes(value)
+  //     ? current.filter(v => v !== value)
+  //     : [...current, value];
+  //   setFilters({ ...filters, sources: current });
+  // };
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4"> {/* Outer wrapper with max-width, centering, and px-4 */}
@@ -41,12 +41,12 @@ export const FilterPanel = ({ filters, setFilters }) => {
             <Filter size={18} className="text-primary-100" />
             Search Filters
           </h2>
-          <button
+          {/* <button
             onClick={() => setShowMore(!showMore)}
             className="text-sm text-primary-100 hover:underline"
           >
             {showMore ? 'Hide Advanced Filters' : 'Show Advanced Filters'}
-          </button>
+          </button> */}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -68,7 +68,7 @@ export const FilterPanel = ({ filters, setFilters }) => {
           ))}
         </div>
 
-        {showMore && (
+        {/* {showMore && (
           <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="md:col-span-3">
               <label className="block text-sm font-medium text-primary-100 mb-1">Search Sources</label>
@@ -136,7 +136,7 @@ export const FilterPanel = ({ filters, setFilters }) => {
               </div>
             ))}
           </div>
-        )}
+        )} */}
       </div>
     </div>
   );
